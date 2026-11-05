@@ -657,6 +657,28 @@
       <div class="preloader-bar-fill" id="preloader-bar"></div>
     </div>
   </div>
+  <script>
+    (function () {
+      const p = document.getElementById('preloader');
+      const b = document.getElementById('preloader-bar');
+      if (b) requestAnimationFrame(() => { b.style.width = '70%'; });
+      function dismiss() {
+        if (!p || p.classList.contains('loaded')) return;
+        if (b) b.style.width = '100%';
+        setTimeout(() => {
+          p.classList.add('loaded');
+          setTimeout(() => { p.style.display = 'none'; }, 650);
+        }, 160);
+      }
+      if (document.readyState === 'complete') {
+        dismiss();
+      } else {
+        window.addEventListener('DOMContentLoaded', () => setTimeout(dismiss, 350));
+        window.addEventListener('load', dismiss);
+        setTimeout(dismiss, 950);
+      }
+    })();
+  </script>
 
   <!-- Custom Luxury Cursor (Desktop) -->
   <div class="cursor-dot" id="cursor-dot"></div>
@@ -2329,10 +2351,13 @@
     </div>
   </div>
 
-  <!-- GSAP 3 & ScrollTrigger Suite & Lenis Smooth Scroll -->
+  <!-- GSAP 3 & ScrollTrigger Suite & Lenis Smooth Scroll with resilient fallbacks -->
   <script src="components/gsap.min.js"></script>
+  <script>window.gsap || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>')</script>
   <script src="components/ScrollTrigger.min.js"></script>
+  <script>window.ScrollTrigger || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"><\/script>')</script>
   <script src="components/lenis.min.js"></script>
+  <script>window.Lenis || document.write('<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"><\/script>')</script>
 
   <script>
     const Lenis = window.Lenis || null;
@@ -2365,26 +2390,32 @@
     // =========================================================================
     // GSAP 3 & SCROLLTRIGGER MASTER ARCHITECTURE WITH LENIS 1:1 SYNC
     // =========================================================================
-    gsap.registerPlugin(ScrollTrigger);
+    if (window.gsap && window.ScrollTrigger) {
+      gsap.registerPlugin(ScrollTrigger);
+    }
 
     let lenis = null;
     const isTouch = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
-    if (!isReducedMotion && Lenis) {
-      lenis = new Lenis({
-        duration: isTouch ? 0.8 : 1.15,
+    if (!isReducedMotion && window.Lenis) {
+      lenis = new window.Lenis({
+        duration: isTouch ? 0.6 : 1.15,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
         wheelMultiplier: 0.95,
-        touchMultiplier: 1.0,
+        touchMultiplier: 0, // Native touch scrolling on touch devices: eliminates scroll freezes & lockups
         syncTouch: false,
       });
 
       // Map Lenis 1:1 with GSAP ticker & ScrollTrigger
-      lenis.on('scroll', ScrollTrigger.update);
-      gsap.ticker.add((time) => {
-        lenis.raf(time * 1000);
-      });
-      gsap.ticker.lagSmoothing(0);
+      if (window.ScrollTrigger) {
+        lenis.on('scroll', ScrollTrigger.update);
+      }
+      if (window.gsap) {
+        gsap.ticker.add((time) => {
+          lenis.raf(time * 1000);
+        });
+        gsap.ticker.lagSmoothing(0);
+      }
 
       // Single-page smooth anchor navigation
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -2402,14 +2433,16 @@
     }
 
     // Refresh ScrollTrigger on dynamic asset loads & font ready
-    window.addEventListener('load', () => ScrollTrigger.refresh());
-    if (document.fonts) {
-      document.fonts.ready.then(() => ScrollTrigger.refresh());
+    if (window.ScrollTrigger) {
+      window.addEventListener('load', () => ScrollTrigger.refresh());
+      if (document.fonts) {
+        document.fonts.ready.then(() => ScrollTrigger.refresh());
+      }
+      window.addEventListener('resize', () => ScrollTrigger.refresh(), { passive: true });
     }
-    window.addEventListener('resize', () => ScrollTrigger.refresh(), { passive: true });
 
     // 5. Sequential Section-by-Section Staggered Reveals
-    if (!isReducedMotion) {
+    if (!isReducedMotion && window.gsap && window.ScrollTrigger) {
       // Hero Entrance Timeline
       const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
       heroTl
@@ -2461,40 +2494,22 @@
           );
         }
       });
-
-      // 2. Hero -> 3D Canvas Decoupled Exit
-      // As final step finishes in #services, smoothly fade out 3D canvas (opacity: 0, scale: 0.95) over last 15%
-      ScrollTrigger.create({
-        trigger: '#services',
-        start: 'bottom 90%',
-        end: 'bottom top',
-        scrub: true,
-        onUpdate: (self) => {
-          if (self.progress > 0.85) {
-            const exitT = (self.progress - 0.85) / 0.15;
-            const hCanvas = document.getElementById('hand-canvas');
-            if (hCanvas) {
-              gsap.set(hCanvas, {
-                opacity: Math.max(0, 1 - exitT),
-                scale: 1 - exitT * 0.05
-              });
-            }
-          }
-        }
-      });
     }
 
 
 
 // UI Scripts & Interactions for All PDF Sections
 (function initUI() {
-  // 1. Preloader
+  // 1. Preloader Safety Dismissal
   const preloader = document.getElementById('preloader');
   const bar = document.getElementById('preloader-bar');
   if (bar) bar.style.width = '100%';
-  setTimeout(() => {
-    if (preloader) preloader.classList.add('loaded');
-  }, 900);
+  if (preloader && !preloader.classList.contains('loaded')) {
+    setTimeout(() => {
+      preloader.classList.add('loaded');
+      setTimeout(() => { preloader.style.display = 'none'; }, 650);
+    }, 400);
+  }
 
   // Universal failsafe: ensure preloader dismisses even on slow mobile connections
   window.addEventListener('load', () => {
@@ -2791,7 +2806,7 @@
     const lapCache = new Array(LAP_TOTAL);
     const lapReady = new Uint8Array(LAP_TOTAL);
 
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let viewW = window.innerWidth;
     let viewH = window.innerHeight;
 
@@ -2803,7 +2818,7 @@
       }
       viewW = newW;
       viewH = newH;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
       const targetW = Math.round(viewW * dpr);
       const targetH = Math.round(viewH * dpr);
@@ -2812,260 +2827,175 @@
         roboCanvas.width = targetW;
         roboCanvas.height = targetH;
         roboCtx.imageSmoothingEnabled = true;
-        roboCtx.imageSmoothingQuality = 'high';
+        roboCtx.imageSmoothingQuality = 'medium';
         renderRobo(Math.round(currentRoboFrame), true);
       }
       if (handCanvas && handCtx) {
         handCanvas.width = targetW;
         handCanvas.height = targetH;
         handCtx.imageSmoothingEnabled = true;
-        handCtx.imageSmoothingQuality = 'high';
+        handCtx.imageSmoothingQuality = 'medium';
         renderHand(Math.round(currentHandFrame), true);
       }
       if (brainCanvas && brainCtx) {
         brainCanvas.width = targetW;
         brainCanvas.height = targetH;
         brainCtx.imageSmoothingEnabled = true;
-        brainCtx.imageSmoothingQuality = 'high';
+        brainCtx.imageSmoothingQuality = 'medium';
         renderBrain(Math.round(currentBrainFrame), true);
       }
       if (humanCanvas && humanCtx) {
         humanCanvas.width = targetW;
         humanCanvas.height = targetH;
         humanCtx.imageSmoothingEnabled = true;
-        humanCtx.imageSmoothingQuality = 'high';
+        humanCtx.imageSmoothingQuality = 'medium';
         renderHuman(Math.round(currentHumanFrame), true);
       }
       if (lapCanvas && lapCtx) {
         lapCanvas.width = targetW;
         lapCanvas.height = targetH;
         lapCtx.imageSmoothingEnabled = true;
-        lapCtx.imageSmoothingQuality = 'high';
+        lapCtx.imageSmoothingQuality = 'medium';
         renderLap(Math.round(currentLapFrame), true);
       }
     }
 
     // -------------------------------------------------------------------------
-    // ROBO Frame Management
+    // High-Performance Frame Management Factories
     // -------------------------------------------------------------------------
-    function getRoboImg(idx) {
-      if (!roboCache[idx]) {
-        const img = new Image();
-        img.src = './ROBO/' + ROBO_FRAMES[idx];
-        img.onload = () => {
-          roboReady[idx] = 1;
-          if (Math.round(currentRoboFrame) === idx && currentRoboOpacity > 0.001) {
-            renderRobo(idx);
-          }
-        };
-        roboCache[idx] = img;
+    function createFrameManager(prefix, frameList, cache, ready, renderFn, getOpacityFn, getFrameFn) {
+      const total = frameList.length;
+      function getImg(idx) {
+        if (idx < 0 || idx >= total) return null;
+        if (!cache[idx]) {
+          const img = new Image();
+          img.onload = () => {
+            ready[idx] = 1;
+            if (Math.round(getFrameFn()) === idx && getOpacityFn() > 0.001) {
+              renderFn(idx);
+            }
+          };
+          img.onerror = () => {
+            ready[idx] = 2; // Mark as error to avoid infinite stalls
+          };
+          img.src = prefix + frameList[idx];
+          cache[idx] = img;
+        }
+        return cache[idx];
       }
-      return roboCache[idx];
+
+      function findBest(idx) {
+        const clamped = Math.max(0, Math.min(total - 1, idx));
+        if (ready[clamped] === 1 && cache[clamped]?.complete && cache[clamped]?.naturalWidth > 0) {
+          return cache[clamped];
+        }
+        getImg(clamped);
+        const maxRadius = Math.min(24, total);
+        for (let r = 1; r < maxRadius; r++) {
+          const prev = clamped - r;
+          if (prev >= 0 && ready[prev] === 1 && cache[prev]?.complete && cache[prev]?.naturalWidth > 0) return cache[prev];
+          const next = clamped + r;
+          if (next < total && ready[next] === 1 && cache[next]?.complete && cache[next]?.naturalWidth > 0) return cache[next];
+        }
+        if (ready[0] === 1 && cache[0]?.complete && cache[0]?.naturalWidth > 0) return cache[0];
+        return null;
+      }
+
+      return { getImg, findBest };
     }
 
-    function findBestRobo(idx) {
-      if (roboReady[idx] && roboCache[idx]?.complete) return roboCache[idx];
-      getRoboImg(idx);
-      for (let offset = 1; offset < ROBO_TOTAL; offset++) {
-        const prev = idx - offset;
-        if (prev >= 0 && roboReady[prev] && roboCache[prev]?.complete) return roboCache[prev];
-        const next = idx + offset;
-        if (next < ROBO_TOTAL && roboReady[next] && roboCache[next]?.complete) return roboCache[next];
-      }
-      return roboCache[0] || null;
-    }
-
+    // Act 1: ROBO
     let lastRoboDrawn = -1;
     function renderRobo(idx, force = false) {
       if (!roboCtx || !roboCanvas) return;
       const clamped = Math.max(0, Math.min(ROBO_TOTAL - 1, idx));
       if (!force && clamped === lastRoboDrawn) return;
-
-      const img = findBestRobo(clamped);
+      const img = roboMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-
       drawCover(roboCtx, roboCanvas, img);
       lastRoboDrawn = clamped;
     }
+    const roboMgr = createFrameManager(
+      './ROBO/', ROBO_FRAMES, roboCache, roboReady,
+      renderRobo, () => currentRoboOpacity, () => currentRoboFrame
+    );
+    const getRoboImg = roboMgr.getImg;
 
-    // -------------------------------------------------------------------------
-    // HAND Frame Management
-    // -------------------------------------------------------------------------
-    function getHandImg(idx) {
-      if (!handCache[idx]) {
-        const img = new Image();
-        img.src = './Hand/' + HAND_FRAMES[idx];
-        img.onload = () => {
-          handReady[idx] = 1;
-          if (Math.round(currentHandFrame) === idx && currentHandOpacity > 0.001) {
-            renderHand(idx);
-          }
-        };
-        handCache[idx] = img;
-      }
-      return handCache[idx];
-    }
-
-    function findBestHand(idx) {
-      if (handReady[idx] && handCache[idx]?.complete) return handCache[idx];
-      getHandImg(idx);
-      for (let offset = 1; offset < HAND_TOTAL; offset++) {
-        const prev = idx - offset;
-        if (prev >= 0 && handReady[prev] && handCache[prev]?.complete) return handCache[prev];
-        const next = idx + offset;
-        if (next < HAND_TOTAL && handReady[next] && handCache[next]?.complete) return handCache[next];
-      }
-      return handCache[0] || null;
-    }
-
+    // Act 2: HAND
     let lastHandDrawn = -1;
     function renderHand(idx, force = false) {
       if (!handCtx || !handCanvas) return;
       const clamped = Math.max(0, Math.min(HAND_TOTAL - 1, idx));
       if (!force && clamped === lastHandDrawn) return;
-
-      const img = findBestHand(clamped);
+      const img = handMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-
       drawCover(handCtx, handCanvas, img);
       lastHandDrawn = clamped;
     }
+    const handMgr = createFrameManager(
+      './Hand/', HAND_FRAMES, handCache, handReady,
+      renderHand, () => currentHandOpacity, () => currentHandFrame
+    );
+    const getHandImg = handMgr.getImg;
 
-    // -------------------------------------------------------------------------
-    // BRAINROBO Frame Management (Act 3: Guardian, Industries & Portfolio)
-    // -------------------------------------------------------------------------
-    function getBrainImg(idx) {
-      if (!brainCache[idx]) {
-        const img = new Image();
-        img.onload = () => {
-          brainReady[idx] = 1;
-          if (Math.round(currentBrainFrame) === idx && currentBrainOpacity > 0.001) {
-            renderBrain(idx);
-          }
-        };
-        img.src = './brainrobo/' + BRAIN_FRAMES[idx];
-        brainCache[idx] = img;
-      }
-      return brainCache[idx];
-    }
-
-    function findBestBrain(idx) {
-      if (brainReady[idx] && brainCache[idx]?.complete) return brainCache[idx];
-      getBrainImg(idx);
-      for (let offset = 1; offset < BRAIN_TOTAL; offset++) {
-        const prev = idx - offset;
-        if (prev >= 0 && brainReady[prev] && brainCache[prev]?.complete) return brainCache[prev];
-        const next = idx + offset;
-        if (next < BRAIN_TOTAL && brainReady[next] && brainCache[next]?.complete) return brainCache[next];
-      }
-      return brainCache[0] || null;
-    }
-
+    // Act 3: BRAINROBO
     let lastBrainDrawn = -1;
     function renderBrain(idx, force = false) {
       if (!brainCtx || !brainCanvas) return;
       const clamped = Math.max(0, Math.min(BRAIN_TOTAL - 1, idx));
       if (!force && clamped === lastBrainDrawn) return;
-
-      const img = findBestBrain(clamped);
+      const img = brainMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-
       drawCover(brainCtx, brainCanvas, img);
       lastBrainDrawn = clamped;
     }
+    const brainMgr = createFrameManager(
+      './brainrobo/', BRAIN_FRAMES, brainCache, brainReady,
+      renderBrain, () => currentBrainOpacity, () => currentBrainFrame
+    );
+    const getBrainImg = brainMgr.getImg;
 
-    // -------------------------------------------------------------------------
-    // HUMANROBO Frame Management (Act 4: About, Technology & Testimonials)
-    // -------------------------------------------------------------------------
-    function getHumanImg(idx) {
-      if (!humanCache[idx]) {
-        const img = new Image();
-        img.onload = () => {
-          humanReady[idx] = 1;
-          if (Math.round(currentHumanFrame) === idx && currentHumanOpacity > 0.001) {
-            renderHuman(idx);
-          }
-        };
-        img.src = './HumanRobo/' + HUMAN_FRAMES[idx];
-        humanCache[idx] = img;
-      }
-      return humanCache[idx];
-    }
-
-    function findBestHuman(idx) {
-      if (humanReady[idx] && humanCache[idx]?.complete) return humanCache[idx];
-      getHumanImg(idx);
-      for (let offset = 1; offset < HUMAN_TOTAL; offset++) {
-        const prev = idx - offset;
-        if (prev >= 0 && humanReady[prev] && humanCache[prev]?.complete) return humanCache[prev];
-        const next = idx + offset;
-        if (next < HUMAN_TOTAL && humanReady[next] && humanCache[next]?.complete) return humanCache[next];
-      }
-      return humanCache[0] || null;
-    }
-
+    // Act 4: HUMANROBO
     let lastHumanDrawn = -1;
     function renderHuman(idx, force = false) {
       if (!humanCtx || !humanCanvas) return;
       const clamped = Math.max(0, Math.min(HUMAN_TOTAL - 1, idx));
       if (!force && clamped === lastHumanDrawn) return;
-
-      const img = findBestHuman(clamped);
+      const img = humanMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-
       drawCover(humanCtx, humanCanvas, img);
       lastHumanDrawn = clamped;
     }
+    const humanMgr = createFrameManager(
+      './HumanRobo/', HUMAN_FRAMES, humanCache, humanReady,
+      renderHuman, () => currentHumanOpacity, () => currentHumanFrame
+    );
+    const getHumanImg = humanMgr.getImg;
 
-    // -------------------------------------------------------------------------
-    // LAP Frame Management (Act 5: Testimonials, Estimator & Contact)
-    // -------------------------------------------------------------------------
-    function getLapImg(idx) {
-      if (!lapCache[idx]) {
-        const img = new Image();
-        img.onload = () => {
-          lapReady[idx] = 1;
-          if (Math.round(currentLapFrame) === idx && currentLapOpacity > 0.001) {
-            renderLap(idx);
-          }
-        };
-        img.src = './Lap/' + LAP_FRAMES[idx];
-        lapCache[idx] = img;
-      }
-      return lapCache[idx];
-    }
-
-    function findBestLap(idx) {
-      if (lapReady[idx] && lapCache[idx]?.complete) return lapCache[idx];
-      getLapImg(idx);
-      for (let offset = 1; offset < LAP_TOTAL; offset++) {
-        const prev = idx - offset;
-        if (prev >= 0 && lapReady[prev] && lapCache[prev]?.complete) return lapCache[prev];
-        const next = idx + offset;
-        if (next < LAP_TOTAL && lapReady[next] && lapCache[next]?.complete) return lapCache[next];
-      }
-      return lapCache[0] || null;
-    }
-
+    // Act 5: LAP
     let lastLapDrawn = -1;
     function renderLap(idx, force = false) {
       if (!lapCtx || !lapCanvas) return;
       const clamped = Math.max(0, Math.min(LAP_TOTAL - 1, idx));
       if (!force && clamped === lastLapDrawn) return;
-
-      const img = findBestLap(clamped);
+      const img = lapMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-
       drawCover(lapCtx, lapCanvas, img);
       lastLapDrawn = clamped;
     }
+    const lapMgr = createFrameManager(
+      './Lap/', LAP_FRAMES, lapCache, lapReady,
+      renderLap, () => currentLapOpacity, () => currentLapFrame
+    );
+    const getLapImg = lapMgr.getImg;
 
-    // Generic Cover Sizing Math
+    // Optimized Cover Sizing Math (No redundant clearRect/fillRect)
     function drawCover(context, targetCanvas, img) {
       const cw = targetCanvas.width;
       const ch = targetCanvas.height;
       const nw = img.naturalWidth;
       const nh = img.naturalHeight;
+      if (!nw || !nh) return;
 
       const canvasRatio = cw / ch;
       const imgRatio = nw / nh;
@@ -3083,132 +3013,36 @@
         dy = 0;
       }
 
-      context.fillStyle = '#050505';
-      context.fillRect(0, 0, cw, ch);
       context.drawImage(img, dx, dy, dw, dh);
     }
 
     // -------------------------------------------------------------------------
-    // Staged Preloader for Zero Jank & Rapid Response
+    // Smart Proximity Streamer: Zero Network Congestion & Instant Response
     // -------------------------------------------------------------------------
+    function bufferSequenceRange(getFn, center, radius, stride, total) {
+      const start = Math.max(0, center - radius);
+      const end = Math.min(total - 1, center + radius);
+      for (let i = start; i <= end; i += stride) {
+        getFn(i);
+      }
+    }
+
     function startPreloading() {
-      // 1. Prime first frame of all sequences immediately
+      // 1. Instantly prime frame 0 of Hero ROBO
       const firstRobo = getRoboImg(0);
-      if (firstRobo.complete) {
+      if (firstRobo && firstRobo.complete && firstRobo.naturalWidth > 0) {
         roboReady[0] = 1;
         renderRobo(0);
       }
-      const firstHand = getHandImg(0);
-      if (firstHand.complete) {
-        handReady[0] = 1;
-        renderHand(0);
-      }
-      const firstBrain = getBrainImg(0);
-      if (firstBrain.complete) {
-        brainReady[0] = 1;
-        renderBrain(0);
-      }
-      const firstHuman = getHumanImg(0);
-      if (firstHuman.complete) {
-        humanReady[0] = 1;
-        renderHuman(0);
-      }
-      const firstLap = getLapImg(0);
-      if (firstLap.complete) {
-        lapReady[0] = 1;
-        renderLap(0);
-      }
 
-      // 2. Priority keyframe stride for ROBO (Act 1)
-      const roboStride = 4;
-      for (let i = 0; i < ROBO_TOTAL; i += roboStride) {
-        getRoboImg(i);
-      }
+      // 2. Buffer small initial window for Hero (10 keyframes)
+      bufferSequenceRange(getRoboImg, 0, 20, 2, ROBO_TOTAL);
 
-      // 3. Staggered preloading for HAND (Act 2)
-      setTimeout(() => {
-        const handStride = 4;
-        for (let i = 0; i < HAND_TOTAL; i += handStride) {
-          getHandImg(i);
-        }
-      }, 120);
-
-      // 4. Staggered preloading for BRAIN (Act 3)
-      setTimeout(() => {
-        const brainStride = 4;
-        for (let i = 0; i < BRAIN_TOTAL; i += brainStride) {
-          getBrainImg(i);
-        }
-      }, 240);
-
-      // 5. Staggered preloading for HUMANROBO (Act 4)
-      setTimeout(() => {
-        const humanStride = 4;
-        for (let i = 0; i < HUMAN_TOTAL; i += humanStride) {
-          getHumanImg(i);
-        }
-      }, 360);
-
-      // 6. Staggered preloading for LAP (Act 5)
-      setTimeout(() => {
-        const lapStride = 5;
-        for (let i = 0; i < LAP_TOTAL; i += lapStride) {
-          getLapImg(i);
-        }
-      }, 480);
-
-      // 7. Fill in remaining frames progressively in background
-      setTimeout(() => {
-        let rIdx = 0;
-        function fillRobo() {
-          if (rIdx < ROBO_TOTAL) {
-            if (!roboCache[rIdx]) getRoboImg(rIdx);
-            rIdx++;
-            setTimeout(fillRobo, 14);
-          } else {
-            fillHand();
-          }
-        }
-        let hIdx = 0;
-        function fillHand() {
-          if (hIdx < HAND_TOTAL) {
-            if (!handCache[hIdx]) getHandImg(hIdx);
-            hIdx++;
-            setTimeout(fillHand, 14);
-          } else {
-            fillBrain();
-          }
-        }
-        let bIdx = 0;
-        function fillBrain() {
-          if (bIdx < BRAIN_TOTAL) {
-            if (!brainCache[bIdx]) getBrainImg(bIdx);
-            bIdx++;
-            setTimeout(fillBrain, 12);
-          } else {
-            fillHuman();
-          }
-        }
-        let huIdx = 0;
-        function fillHuman() {
-          if (huIdx < HUMAN_TOTAL) {
-            if (!humanCache[huIdx]) getHumanImg(huIdx);
-            huIdx++;
-            setTimeout(fillHuman, 12);
-          } else {
-            fillLap();
-          }
-        }
-        let lIdx = 0;
-        function fillLap() {
-          if (lIdx < LAP_TOTAL) {
-            if (!lapCache[lIdx]) getLapImg(lIdx);
-            lIdx++;
-            setTimeout(fillLap, 12);
-          }
-        }
-        fillRobo();
-      }, 450);
+      // 3. Staggered gentle warm-up of frame 0 for subsequent acts
+      setTimeout(() => { getHandImg(0); }, 300);
+      setTimeout(() => { getBrainImg(0); }, 600);
+      setTimeout(() => { getHumanImg(0); }, 900);
+      setTimeout(() => { getLapImg(0); }, 1200);
     }
 
     // -------------------------------------------------------------------------
@@ -3237,10 +3071,62 @@
     let currentLapOpacity = 0;
 
     // -------------------------------------------------------------------------
-    // Cinematic Section Spotlight Controller (Every Section "On & Off" Flow)
+    // Cached Document Geometry: Zero Layout Thrashing on Scroll
+    // -------------------------------------------------------------------------
+    const secAwards = document.querySelector('#awards') || document.querySelector('.awards');
+    const secTrust = document.querySelector('#trust') || document.querySelector('.trust');
+    const secServices = document.querySelector('#services') || document.querySelector('.features');
+    const secGuardian = document.querySelector('#guardian') || document.querySelector('.showcase');
+    const secIndustries = document.querySelector('#industries') || document.querySelector('.industries');
+    const secPortfolio = document.querySelector('#portfolio') || document.querySelector('.portfolio');
+    const secAbout = document.querySelector('#about') || document.querySelector('.about');
+    const secTech = document.querySelector('#technology') || document.querySelector('.technology');
+    const secTestimonials = document.querySelector('#testimonials') || document.querySelector('.testimonials');
+    const secEstimator = document.querySelector('#estimator') || document.querySelector('.estimator');
+    const secContact = document.querySelector('#contact') || document.querySelector('.contact');
+    const secFooter = document.querySelector('.footer') || document.querySelector('footer');
+
+    let awardsTop = 800;
+    let trustTop = 1600;
+    let servicesTop = 2400;
+    let guardianTop = 4000;
+    let industriesTop = 5200;
+    let portfolioTop = 6400;
+    let aboutTop = 7600;
+    let techTop = 8800;
+    let testimonialsTop = 10000;
+    let estimatorTop = 11200;
+    let contactTop = 12400;
+    let footerTop = 13600;
+
+    function measureSections() {
+      const vh = window.innerHeight;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      function getTop(el, fallback) {
+        if (!el) return fallback;
+        return el.getBoundingClientRect().top + scrollY;
+      }
+      awardsTop = getTop(secAwards, vh);
+      trustTop = getTop(secTrust, vh * 2);
+      servicesTop = getTop(secServices, vh * 3);
+      guardianTop = getTop(secGuardian, vh * 5);
+      industriesTop = getTop(secIndustries, guardianTop + vh * 1.5);
+      portfolioTop = getTop(secPortfolio, industriesTop + vh * 1.5);
+      const portH = secPortfolio ? secPortfolio.offsetHeight : vh * 2;
+      aboutTop = getTop(secAbout, portfolioTop + portH);
+      techTop = getTop(secTech, aboutTop + vh * 1.5);
+      testimonialsTop = getTop(secTestimonials, techTop + vh * 1.5);
+      estimatorTop = getTop(secEstimator, testimonialsTop + vh * 1.5);
+      contactTop = getTop(secContact, estimatorTop + vh * 1.5);
+      footerTop = getTop(secFooter, contactTop + vh * 1.5);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cinematic Section Spotlight Controller (Throttled & Non-Blocking)
     // -------------------------------------------------------------------------
     const spotlightEls = document.querySelectorAll('.hero-inner, .hero .logos, .section');
-    function updateSpotlights() {
+    let lastSpotlightTick = 0;
+    function updateSpotlights(force = false) {
       if (window.innerWidth <= 991) {
         spotlightEls.forEach(el => {
           el.classList.add('spotlight-active');
@@ -3248,6 +3134,10 @@
         });
         return;
       }
+      const now = performance.now();
+      if (!force && now - lastSpotlightTick < 80) return;
+      lastSpotlightTick = now;
+
       const vh = window.innerHeight;
       const enterThreshold = vh * 0.88;
       const leaveThreshold = vh * 0.12;
@@ -3256,11 +3146,15 @@
         const rect = el.getBoundingClientRect();
         const isInView = rect.top < enterThreshold && rect.bottom > leaveThreshold;
         if (isInView) {
-          el.classList.add('spotlight-active');
-          el.classList.remove('spotlight-leaving');
+          if (!el.classList.contains('spotlight-active')) {
+            el.classList.add('spotlight-active');
+            el.classList.remove('spotlight-leaving');
+          }
         } else if (rect.bottom <= leaveThreshold) {
-          el.classList.remove('spotlight-active');
-          el.classList.add('spotlight-leaving');
+          if (!el.classList.contains('spotlight-leaving')) {
+            el.classList.remove('spotlight-active');
+            el.classList.add('spotlight-leaving');
+          }
         } else {
           el.classList.remove('spotlight-active');
           el.classList.remove('spotlight-leaving');
@@ -3268,42 +3162,9 @@
       });
     }
 
-    function getDocTop(el) {
-      if (!el) return 0;
-      return el.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0);
-    }
-
     function onScrollUpdate() {
       updateSpotlights();
       const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-
-      // Section elements
-      const awardsEl = document.querySelector('#awards') || document.querySelector('.awards');
-      const trustEl = document.querySelector('#trust') || document.querySelector('.trust');
-      const servicesEl = document.querySelector('#services') || document.querySelector('.features');
-      const guardianEl = document.querySelector('#guardian') || document.querySelector('.showcase');
-      const industriesEl = document.querySelector('#industries') || document.querySelector('.industries');
-      const portfolioEl = document.querySelector('#portfolio') || document.querySelector('.portfolio');
-      const aboutEl = document.querySelector('#about') || document.querySelector('.about');
-      const techEl = document.querySelector('#technology') || document.querySelector('.technology');
-      const testimonialsEl = document.querySelector('#testimonials') || document.querySelector('.testimonials');
-      const estimatorEl = document.querySelector('#estimator') || document.querySelector('.estimator');
-      const contactEl = document.querySelector('#contact') || document.querySelector('.contact');
-      const footerEl = document.querySelector('.footer') || document.querySelector('footer');
-
-      // Exact document-relative top coordinates
-      const awardsTop = awardsEl ? getDocTop(awardsEl) : window.innerHeight;
-      const trustTop = trustEl ? getDocTop(trustEl) : window.innerHeight * 2;
-      const servicesTop = servicesEl ? getDocTop(servicesEl) : window.innerHeight * 3;
-      const guardianTop = guardianEl ? getDocTop(guardianEl) : window.innerHeight * 5;
-      const industriesTop = industriesEl ? getDocTop(industriesEl) : guardianTop + window.innerHeight * 1.5;
-      const portfolioTop = portfolioEl ? getDocTop(portfolioEl) : industriesTop + window.innerHeight * 1.5;
-      const aboutTop = aboutEl ? getDocTop(aboutEl) : portfolioTop + (portfolioEl ? portfolioEl.offsetHeight : window.innerHeight * 2);
-      const techTop = techEl ? getDocTop(techEl) : aboutTop + window.innerHeight * 1.5;
-      const testimonialsTop = testimonialsEl ? getDocTop(testimonialsEl) : techTop + window.innerHeight * 1.5;
-      const estimatorTop = estimatorEl ? getDocTop(estimatorEl) : testimonialsTop + window.innerHeight * 1.5;
-      const contactTop = contactEl ? getDocTop(contactEl) : estimatorTop + window.innerHeight * 1.5;
-      const footerTop = footerEl ? getDocTop(footerEl) : contactTop + window.innerHeight * 1.5;
 
       // -------------------------------------------------------------
       // ACT 1: ROBO TIMELINE (Hero + Awards)
@@ -3330,7 +3191,7 @@
       const handToBrainEnd = Math.max(handToBrainStart + 180, guardianTop + window.innerHeight * 0.12);
 
       // -------------------------------------------------------------
-      // ACT 3: BRAINROBO TIMELINE (3 Full Sections: Guardian + Industries + Portfolio)
+      // ACT 3: BRAINROBO TIMELINE (Guardian + Industries + Portfolio)
       // -------------------------------------------------------------
       const brainAnimStart = handToBrainStart;
       const brainAnimEnd = aboutTop - window.innerHeight * 0.35;
@@ -3343,7 +3204,7 @@
       const brainToHumanEnd = Math.max(brainToHumanStart + 180, aboutTop + window.innerHeight * 0.12);
 
       // -------------------------------------------------------------
-      // ACT 4: HUMANROBO TIMELINE (About + Technology: Sections 8 & 9)
+      // ACT 4: HUMANROBO TIMELINE (About + Technology)
       // -------------------------------------------------------------
       const humanAnimStart = brainToHumanStart;
       const humanToLapStart = testimonialsTop - window.innerHeight * 0.35;
@@ -3354,7 +3215,7 @@
       targetHumanFrame = humanProgress * (HUMAN_TOTAL - 1);
 
       // -------------------------------------------------------------
-      // ACT 5: LAP TIMELINE (Last 3 Sections: Testimonials + Estimator + Contact)
+      // ACT 5: LAP TIMELINE (Testimonials + Estimator + Contact)
       // -------------------------------------------------------------
       const lapAnimStart = humanToLapStart;
       const lapAnimEnd = footerTop - window.innerHeight * 0.25;
@@ -3366,16 +3227,14 @@
       const lapFadeStart = footerTop - window.innerHeight * 0.40;
       const lapFadeEnd = footerTop - window.innerHeight * 0.05;
 
-      // Opacity calculation across all sections:
+      // Opacity calculation across all sections
       if (scrollY <= crossfadeStart) {
-        // Sections 1 & 2: Full ROBO
         targetRoboOpacity = 1;
         targetHandOpacity = 0;
         targetBrainOpacity = 0;
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
       } else if (scrollY < crossfadeEnd) {
-        // Cross-fade: ROBO to HAND
         const t = (scrollY - crossfadeStart) / (crossfadeEnd - crossfadeStart);
         targetRoboOpacity = 1 - t;
         targetHandOpacity = t;
@@ -3383,14 +3242,12 @@
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
       } else if (scrollY <= handToBrainStart) {
-        // Sections 3 & 4: Full HAND
         targetRoboOpacity = 0;
         targetHandOpacity = 1;
         targetBrainOpacity = 0;
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
       } else if (scrollY < handToBrainEnd) {
-        // Cross-fade: HAND to BRAIN (entering Guardian)
         const t = (scrollY - handToBrainStart) / (handToBrainEnd - handToBrainStart);
         targetRoboOpacity = 0;
         targetHandOpacity = 1 - t;
@@ -3398,14 +3255,12 @@
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
       } else if (scrollY <= brainToHumanStart) {
-        // ALL 3 FULL SECTIONS (Guardian + Industries + Portfolio): FULL BRAIN OPACITY (1.0)
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
         targetBrainOpacity = 1;
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
       } else if (scrollY < brainToHumanEnd) {
-        // Cross-fade: BRAIN to HUMAN (entering About)
         const t = (scrollY - brainToHumanStart) / (brainToHumanEnd - brainToHumanStart);
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
@@ -3413,14 +3268,12 @@
         targetHumanOpacity = t;
         targetLapOpacity = 0;
       } else if (scrollY <= humanToLapStart) {
-        // Act 4 (About + Technology): FULL HUMAN OPACITY (1.0)
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
         targetBrainOpacity = 0;
         targetHumanOpacity = 1;
         targetLapOpacity = 0;
       } else if (scrollY < humanToLapEnd) {
-        // Cross-fade: HUMAN to LAP (entering Testimonials)
         const t = (scrollY - humanToLapStart) / (humanToLapEnd - humanToLapStart);
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
@@ -3428,14 +3281,12 @@
         targetHumanOpacity = 1 - t;
         targetLapOpacity = t;
       } else if (scrollY <= lapFadeStart) {
-        // Act 5: ALL 3 LAST SECTIONS (Testimonials + Estimator + Contact): FULL LAP OPACITY (1.0)
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
         targetBrainOpacity = 0;
         targetHumanOpacity = 0;
         targetLapOpacity = 1;
       } else if (scrollY < lapFadeEnd) {
-        // Exiting Contact into Footer: Smooth graceful fade out
         const t = (scrollY - lapFadeStart) / (lapFadeEnd - lapFadeStart);
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
@@ -3443,12 +3294,36 @@
         targetHumanOpacity = 0;
         targetLapOpacity = 1 - t;
       } else {
-        // Footer: All background animations completely OFF
         targetRoboOpacity = 0;
         targetHandOpacity = 0;
         targetBrainOpacity = 0;
         targetHumanOpacity = 0;
         targetLapOpacity = 0;
+      }
+
+      // Dynamic On-Demand Frame Lookahead Streaming
+      if (scrollY <= trustTop) {
+        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 8, 1, ROBO_TOTAL);
+        if (scrollY > awardsTop * 0.4) {
+          bufferSequenceRange(getHandImg, 0, 10, 2, HAND_TOTAL);
+        }
+      } else if (scrollY <= guardianTop) {
+        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 8, 1, HAND_TOTAL);
+        if (scrollY > servicesTop * 0.6) {
+          bufferSequenceRange(getBrainImg, 0, 10, 2, BRAIN_TOTAL);
+        }
+      } else if (scrollY <= aboutTop) {
+        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 10, 1, BRAIN_TOTAL);
+        if (scrollY > portfolioTop * 0.6) {
+          bufferSequenceRange(getHumanImg, 0, 10, 2, HUMAN_TOTAL);
+        }
+      } else if (scrollY <= testimonialsTop) {
+        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 10, 1, HUMAN_TOTAL);
+        if (scrollY > techTop * 0.6) {
+          bufferSequenceRange(getLapImg, 0, 10, 2, LAP_TOTAL);
+        }
+      } else {
+        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 10, 1, LAP_TOTAL);
       }
     }
 
@@ -3457,135 +3332,139 @@
       lenis.on('scroll', onScrollUpdate);
     }
     window.addEventListener('resize', () => {
+      measureSections();
       resizeCanvases();
       onScrollUpdate();
     }, { passive: true });
+    window.addEventListener('load', () => {
+      measureSections();
+      onScrollUpdate();
+    });
 
+    measureSections();
     resizeCanvases();
     startPreloading();
     onScrollUpdate();
-    updateSpotlights();
+    updateSpotlights(true);
 
     // -------------------------------------------------------------------------
-    // Unified Render Loop
+    // High-Performance Unified Render Loop (Single RAF Driver, Zero Jank)
     // -------------------------------------------------------------------------
-    function renderLoop(time) {
+    let prevRoboOp = -1;
+    let prevHandOp = -1;
+    let prevBrainOp = -1;
+    let prevHumanOp = -1;
+    let prevLapOp = -1;
+    let prevOverlayOp = -1;
+
+    function renderLoop() {
       requestAnimationFrame(renderLoop);
-      if (lenis) lenis.raf(time);
 
-      // 1. Lerp Opacities
+      // 1. Lerp Opacities smoothly
       currentRoboOpacity += (targetRoboOpacity - currentRoboOpacity) * 0.20;
-      if (Math.abs(currentRoboOpacity - targetRoboOpacity) < 0.005) {
-        currentRoboOpacity = targetRoboOpacity;
-      }
+      if (Math.abs(currentRoboOpacity - targetRoboOpacity) < 0.004) currentRoboOpacity = targetRoboOpacity;
+
       currentHandOpacity += (targetHandOpacity - currentHandOpacity) * 0.20;
-      if (Math.abs(currentHandOpacity - targetHandOpacity) < 0.005) {
-        currentHandOpacity = targetHandOpacity;
-      }
+      if (Math.abs(currentHandOpacity - targetHandOpacity) < 0.004) currentHandOpacity = targetHandOpacity;
+
       currentBrainOpacity += (targetBrainOpacity - currentBrainOpacity) * 0.20;
-      if (Math.abs(currentBrainOpacity - targetBrainOpacity) < 0.005) {
-        currentBrainOpacity = targetBrainOpacity;
-      }
+      if (Math.abs(currentBrainOpacity - targetBrainOpacity) < 0.004) currentBrainOpacity = targetBrainOpacity;
+
       currentHumanOpacity += (targetHumanOpacity - currentHumanOpacity) * 0.20;
-      if (Math.abs(currentHumanOpacity - targetHumanOpacity) < 0.005) {
-        currentHumanOpacity = targetHumanOpacity;
-      }
+      if (Math.abs(currentHumanOpacity - targetHumanOpacity) < 0.004) currentHumanOpacity = targetHumanOpacity;
+
       currentLapOpacity += (targetLapOpacity - currentLapOpacity) * 0.20;
-      if (Math.abs(currentLapOpacity - targetLapOpacity) < 0.005) {
-        currentLapOpacity = targetLapOpacity;
+      if (Math.abs(currentLapOpacity - targetLapOpacity) < 0.004) currentLapOpacity = targetLapOpacity;
+
+      // 2. Efficient DOM style updates (only write when value actually changes)
+      const roboRnd = currentRoboOpacity <= 0.001 ? 0 : Number(currentRoboOpacity.toFixed(3));
+      if (roboCanvas && roboRnd !== prevRoboOp) {
+        roboCanvas.style.opacity = roboRnd;
+        roboCanvas.style.display = roboRnd === 0 ? 'none' : 'block';
+        prevRoboOp = roboRnd;
       }
 
-      // Update Canvas Displays & Styles
-      if (roboCanvas) {
-        roboCanvas.style.opacity = currentRoboOpacity.toFixed(3);
-        roboCanvas.style.display = currentRoboOpacity <= 0.001 ? 'none' : 'block';
+      const handRnd = currentHandOpacity <= 0.001 ? 0 : Number(currentHandOpacity.toFixed(3));
+      if (handCanvas && handRnd !== prevHandOp) {
+        handCanvas.style.opacity = handRnd;
+        handCanvas.style.display = handRnd === 0 ? 'none' : 'block';
+        prevHandOp = handRnd;
       }
-      if (handCanvas) {
-        handCanvas.style.opacity = currentHandOpacity.toFixed(3);
-        handCanvas.style.display = currentHandOpacity <= 0.001 ? 'none' : 'block';
+
+      const brainRnd = currentBrainOpacity <= 0.001 ? 0 : Number(currentBrainOpacity.toFixed(3));
+      if (brainCanvas && brainRnd !== prevBrainOp) {
+        brainCanvas.style.opacity = brainRnd;
+        brainCanvas.style.display = brainRnd === 0 ? 'none' : 'block';
+        prevBrainOp = brainRnd;
       }
-      if (brainCanvas) {
-        brainCanvas.style.opacity = currentBrainOpacity.toFixed(3);
-        brainCanvas.style.display = currentBrainOpacity <= 0.001 ? 'none' : 'block';
+
+      const humanRnd = currentHumanOpacity <= 0.001 ? 0 : Number(currentHumanOpacity.toFixed(3));
+      if (humanCanvas && humanRnd !== prevHumanOp) {
+        humanCanvas.style.opacity = humanRnd;
+        humanCanvas.style.display = humanRnd === 0 ? 'none' : 'block';
+        prevHumanOp = humanRnd;
       }
-      if (humanCanvas) {
-        humanCanvas.style.opacity = currentHumanOpacity.toFixed(3);
-        humanCanvas.style.display = currentHumanOpacity <= 0.001 ? 'none' : 'block';
+
+      const lapRnd = currentLapOpacity <= 0.001 ? 0 : Number(currentLapOpacity.toFixed(3));
+      if (lapCanvas && lapRnd !== prevLapOp) {
+        lapCanvas.style.opacity = lapRnd;
+        lapCanvas.style.display = lapRnd === 0 ? 'none' : 'block';
+        prevLapOp = lapRnd;
       }
-      if (lapCanvas) {
-        lapCanvas.style.opacity = currentLapOpacity.toFixed(3);
-        lapCanvas.style.display = currentLapOpacity <= 0.001 ? 'none' : 'block';
-      }
+
       if (overlay) {
-        const maxOp = Math.max(currentRoboOpacity, currentHandOpacity, currentBrainOpacity, currentHumanOpacity, currentLapOpacity);
-        overlay.style.opacity = maxOp.toFixed(3);
-        overlay.style.display = maxOp <= 0.001 ? 'none' : 'block';
+        const maxOp = Math.max(roboRnd, handRnd, brainRnd, humanRnd, lapRnd);
+        if (maxOp !== prevOverlayOp) {
+          overlay.style.opacity = maxOp;
+          overlay.style.display = maxOp === 0 ? 'none' : 'block';
+          prevOverlayOp = maxOp;
+        }
       }
 
-      // 2. Render ROBO (only when visible)
+      // 3. Render ROBO (only when visible)
       if (currentRoboOpacity > 0.001) {
         const rDiff = targetRoboFrame - currentRoboFrame;
-        if (Math.abs(rDiff) > 0.005) {
-          currentRoboFrame += rDiff * 0.16;
-        } else {
-          currentRoboFrame = targetRoboFrame;
-        }
+        currentRoboFrame += Math.abs(rDiff) > 0.005 ? rDiff * 0.18 : rDiff;
         const rDraw = Math.round(currentRoboFrame);
         if (rDraw !== lastRoboDrawn) {
           renderRobo(rDraw);
         }
       }
 
-      // 3. Render HAND (only when visible)
+      // 4. Render HAND (only when visible)
       if (currentHandOpacity > 0.001) {
         const hDiff = targetHandFrame - currentHandFrame;
-        if (Math.abs(hDiff) > 0.005) {
-          currentHandFrame += hDiff * 0.16;
-        } else {
-          currentHandFrame = targetHandFrame;
-        }
+        currentHandFrame += Math.abs(hDiff) > 0.005 ? hDiff * 0.18 : hDiff;
         const hDraw = Math.round(currentHandFrame);
         if (hDraw !== lastHandDrawn) {
           renderHand(hDraw);
         }
       }
 
-      // 4. Render BRAINROBO (only when visible)
+      // 5. Render BRAINROBO (only when visible)
       if (currentBrainOpacity > 0.001) {
         const bDiff = targetBrainFrame - currentBrainFrame;
-        if (Math.abs(bDiff) > 0.005) {
-          currentBrainFrame += bDiff * 0.16;
-        } else {
-          currentBrainFrame = targetBrainFrame;
-        }
+        currentBrainFrame += Math.abs(bDiff) > 0.005 ? bDiff * 0.18 : bDiff;
         const bDraw = Math.round(currentBrainFrame);
         if (bDraw !== lastBrainDrawn) {
           renderBrain(bDraw);
         }
       }
 
-      // 5. Render HUMANROBO (only when visible)
+      // 6. Render HUMANROBO (only when visible)
       if (currentHumanOpacity > 0.001) {
         const huDiff = targetHumanFrame - currentHumanFrame;
-        if (Math.abs(huDiff) > 0.005) {
-          currentHumanFrame += huDiff * 0.16;
-        } else {
-          currentHumanFrame = targetHumanFrame;
-        }
+        currentHumanFrame += Math.abs(huDiff) > 0.005 ? huDiff * 0.18 : huDiff;
         const huDraw = Math.round(currentHumanFrame);
         if (huDraw !== lastHumanDrawn) {
           renderHuman(huDraw);
         }
       }
 
-      // 6. Render LAP (only when visible)
+      // 7. Render LAP (only when visible)
       if (currentLapOpacity > 0.001) {
         const lDiff = targetLapFrame - currentLapFrame;
-        if (Math.abs(lDiff) > 0.005) {
-          currentLapFrame += lDiff * 0.16;
-        } else {
-          currentLapFrame = targetLapFrame;
-        }
+        currentLapFrame += Math.abs(lDiff) > 0.005 ? lDiff * 0.18 : lDiff;
         const lDraw = Math.round(currentLapFrame);
         if (lDraw !== lastLapDrawn) {
           renderLap(lDraw);
