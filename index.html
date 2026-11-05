@@ -2990,7 +2990,7 @@
       if (!force && clamped === lastRoboDrawn) return;
       const img = roboMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-      drawCover(roboCtx, roboCanvas, img);
+      drawCover(roboCtx, roboCanvas, img, 0.52, 0.38);
       lastRoboDrawn = clamped;
     }
     const roboMgr = createFrameManager(
@@ -3007,7 +3007,7 @@
       if (!force && clamped === lastHandDrawn) return;
       const img = handMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-      drawCover(handCtx, handCanvas, img);
+      drawCover(handCtx, handCanvas, img, 0.50, 0.38);
       lastHandDrawn = clamped;
     }
     const handMgr = createFrameManager(
@@ -3024,7 +3024,7 @@
       if (!force && clamped === lastBrainDrawn) return;
       const img = brainMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-      drawCover(brainCtx, brainCanvas, img);
+      drawCover(brainCtx, brainCanvas, img, 0.50, 0.38);
       lastBrainDrawn = clamped;
     }
     const brainMgr = createFrameManager(
@@ -3041,7 +3041,7 @@
       if (!force && clamped === lastHumanDrawn) return;
       const img = humanMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-      drawCover(humanCtx, humanCanvas, img);
+      drawCover(humanCtx, humanCanvas, img, 0.58, 0.38);
       lastHumanDrawn = clamped;
     }
     const humanMgr = createFrameManager(
@@ -3058,7 +3058,7 @@
       if (!force && clamped === lastLapDrawn) return;
       const img = lapMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
-      drawCover(lapCtx, lapCanvas, img);
+      drawCover(lapCtx, lapCanvas, img, 0.50, 0.38);
       lastLapDrawn = clamped;
     }
     const lapMgr = createFrameManager(
@@ -3067,8 +3067,8 @@
     );
     const getLapImg = lapMgr.getImg;
 
-    // High-Definition Cover Sizing Math (Bicubic Interpolation & Mobile Subject Anchor)
-    function drawCover(context, targetCanvas, img) {
+    // High-Definition Cover Sizing Math (Adaptive Fit for Mobile & Desktop)
+    function drawCover(context, targetCanvas, img, focalX = 0.52, focalY = 0.42) {
       const cw = targetCanvas.width;
       const ch = targetCanvas.height;
       const nw = img.naturalWidth;
@@ -3079,26 +3079,66 @@
       const imgRatio = nw / nh;
       let dw, dh, dx, dy;
 
-      if (canvasRatio > imgRatio) {
-        dw = cw;
-        dh = cw / imgRatio;
-        dx = 0;
-        dy = (ch - dh) * 0.5;
+      if (canvasRatio >= 1.2) {
+        // Desktop widescreen: full cover with right-side model anchor
+        if (canvasRatio > imgRatio) {
+          dw = cw;
+          dh = Math.round(cw / imgRatio);
+          dx = 0;
+          dy = Math.round((ch - dh) * 0.5);
+        } else {
+          dh = ch;
+          dw = Math.round(ch * imgRatio);
+          dx = Math.round(cw - dw);
+          dy = Math.round((ch - dh) * 0.5);
+        }
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.drawImage(img, dx, dy, dw, dh);
       } else {
-        dh = ch;
-        dw = ch * imgRatio;
-        // On portrait/mobile viewports (aspect ratio < 0.9), anchor the focal point near the 3D subject (~68% x-axis)
-        // so the 3D model is dramatically framed in the mobile viewport instead of being pushed off-screen.
-        const focalX = canvasRatio < 0.9 ? 0.68 : 0.5;
-        dx = (cw * 0.5) - (dw * focalX);
-        // Ensure dx never leaves empty margins
-        dx = Math.min(0, Math.max(cw - dw, dx));
-        dy = 0;
-      }
+        // Mobile / Tablet Portrait:
+        // Size the 3D model to comfortably fit the mobile viewport
+        const fitScale = Math.min((cw * 1.05) / (nw * 0.58), (ch * 0.56) / nh);
+        dw = Math.round(nw * fitScale);
+        dh = Math.round(nh * fitScale);
+        dx = Math.round((cw * 0.5) - (dw * focalX));
+        dy = Math.round((ch * focalY) - (dh * 0.5));
 
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      context.drawImage(img, dx, dy, dw, dh);
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.drawImage(img, dx, dy, dw, dh);
+
+        // Feathered edge vignette: seamless dissolve into #050505 page black
+        const fSize = Math.round(Math.min(dw, dh) * 0.14);
+
+        // Top fade
+        const topG = context.createLinearGradient(0, dy, 0, dy + fSize);
+        topG.addColorStop(0, '#050505');
+        topG.addColorStop(1, 'rgba(5,5,5,0)');
+        context.fillStyle = topG;
+        context.fillRect(0, Math.max(0, dy - 2), cw, fSize + 4);
+
+        // Bottom fade
+        const btmG = context.createLinearGradient(0, dy + dh - fSize, 0, dy + dh);
+        btmG.addColorStop(0, 'rgba(5,5,5,0)');
+        btmG.addColorStop(1, '#050505');
+        context.fillStyle = btmG;
+        context.fillRect(0, dy + dh - fSize - 2, cw, fSize + 6);
+
+        // Left fade
+        const leftG = context.createLinearGradient(dx, 0, dx + fSize, 0);
+        leftG.addColorStop(0, '#050505');
+        leftG.addColorStop(1, 'rgba(5,5,5,0)');
+        context.fillStyle = leftG;
+        context.fillRect(Math.max(0, dx - 2), 0, fSize + 4, ch);
+
+        // Right fade
+        const rightG = context.createLinearGradient(dx + dw - fSize, 0, dx + dw, 0);
+        rightG.addColorStop(0, 'rgba(5,5,5,0)');
+        rightG.addColorStop(1, '#050505');
+        context.fillStyle = rightG;
+        context.fillRect(dx + dw - fSize - 2, 0, fSize + 6, ch);
+      }
     }
 
     // -------------------------------------------------------------------------
