@@ -295,8 +295,8 @@
     .cursor-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:99990;transform:translate(-50%,-50%);transition:opacity .2s;opacity:0;will-change:transform}
     .cursor-ring{width:36px;height:36px;border:1.5px solid rgba(244,211,107,.5);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:99989;transform:translate(-50%,-50%);opacity:0;transition:width .2s,height .2s,border-color .2s,background .2s,opacity .2s;will-change:transform}
     .cursor-active .cursor-ring{width:56px;height:56px;border-color:var(--accent);background:rgba(212,175,55,.08)}
-    @media (pointer:fine){.cursor-dot,.cursor-ring{opacity:1}}
-    @media (pointer:coarse){.cursor-dot,.cursor-ring{display:none !important}}
+    @media (pointer:fine) and (min-width: 1025px){.cursor-dot,.cursor-ring{opacity:1}}
+    @media (pointer:coarse), (hover:none), (max-width: 1024px){.cursor-dot,.cursor-ring{display:none !important;opacity:0 !important;visibility:hidden !important;pointer-events:none !important;}}
 
     /* Signature Golden Energy Line */
     .energy-line{position:relative;height:1px;max-width:var(--maxw);margin:clamp(30px,5vw,56px) auto;background:linear-gradient(90deg,transparent,rgba(212,175,55,.16) 18%,rgba(244,211,107,.75) 50%,rgba(212,175,55,.16) 82%,transparent);opacity:.85}
@@ -541,13 +541,59 @@
 
     /* 3. Mobile Portrait & Landscape (max-width: 768px) */
     @media (max-width: 768px) {
-      .section { padding: clamp(52px, 12vw, 90px) 18px; }
-      .nav { padding: 16px 18px; }
+      .section { padding: clamp(48px, 10vw, 76px) 16px; }
+      .nav { padding: 14px 16px; }
       .awards-grid { grid-template-columns: 1fr; }
       .trust-pillars-grid { grid-template-columns: 1fr; }
       .portfolio-grid { grid-template-columns: 1fr; }
       .client-wall { grid-template-columns: repeat(3, 1fr); }
       .form-group-row { grid-template-columns: 1fr; }
+
+      /* Visual contrast enhancement over 3D model canvas */
+      .section-head h2, .hero-title {
+        text-shadow: 0 4px 28px rgba(0,0,0,.98), 0 2px 10px rgba(0,0,0,.95) !important;
+      }
+      .section-head p, .hero-sub {
+        text-shadow: 0 2px 16px rgba(0,0,0,.98), 0 1px 6px rgba(0,0,0,.95) !important;
+      }
+
+      /* Horizontal swipeable pill rows for industries & portfolio */
+      .industry-tabs, .portfolio-filter {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        justify-content: flex-start !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 4px 2px 12px !important;
+        margin: 0 0 20px 0 !important;
+        gap: 8px !important;
+      }
+      .industry-tabs::-webkit-scrollbar, .portfolio-filter::-webkit-scrollbar { display: none !important; }
+      .ind-tab, .port-btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        font-size: 13px !important;
+        padding: 9px 16px !important;
+        min-height: 40px !important;
+      }
+
+      /* Chat FAB & window mobile polish */
+      .chat-widget { bottom: 16px; right: 14px; z-index: 99990; }
+      .chat-fab { width: 48px; height: 48px; }
+      .chat-fab svg { width: 22px; height: 22px; }
+      .chat-window {
+        position: fixed;
+        bottom: 72px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: calc(100vh - 90px);
+        z-index: 99995;
+        border-radius: 18px;
+      }
 
       /* Timeline single-column */
       .timeline-line { left: 20px; }
@@ -569,62 +615,84 @@
       .feature-grid { grid-template-columns: 1fr; }
       .tech-grid { grid-template-columns: 1fr; }
       .testimonials-grid { grid-template-columns: 1fr; }
-      .process-pipeline { grid-template-columns: repeat(2, 1fr); }
-      .industry-pane { padding: 24px 18px; border-radius: 18px; }
-      .ind-badge-box { padding: 20px 16px; }
-      .ind-tab { font-size: 12px; padding: 8px 14px; }
-      .industry-tabs { gap: 8px; margin-bottom: 24px; }
-      .estimator-box { padding: 24px 18px; border-radius: 18px; margin-top: 24px; }
+      .process-pipeline { grid-template-columns: 1fr; }
+      .industry-pane { padding: 22px 16px; border-radius: 18px; }
+      .ind-badge-box { padding: 18px 14px; }
+      .estimator-box { padding: 22px 16px; border-radius: 18px; margin-top: 20px; }
       .est-options-grid { grid-template-columns: 1fr; gap: 10px; }
+      .est-option-card { min-height: 48px; padding: 12px 14px; border-radius: 12px; }
       .est-summary-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-      .est-nav-row { flex-direction: column-reverse; gap: 12px; align-items: stretch; }
-      .est-nav-row .btn { width: 100%; justify-content: center; }
-      .contact-info-card, .contact-form-box { padding: 24px 18px; border-radius: 18px; }
-      .footer { grid-template-columns: 1fr 1fr; gap: 20px; padding: 28px 18px 20px; }
+      .est-nav-row { flex-direction: column-reverse; gap: 10px; align-items: stretch; margin-bottom: 22px; }
+      .est-nav-row .btn { width: 100%; justify-content: center; min-height: 46px; }
+      .contact-info-card, .contact-form-box { padding: 22px 16px; border-radius: 18px; }
+      .footer { grid-template-columns: 1fr; gap: 20px; padding: 28px 16px 20px; }
       .footer-brand { grid-column: 1 / -1; }
       .footer-bottom { flex-direction: column; text-align: center; gap: 6px; }
-      .logos-row { border-radius: 16px; padding: 12px 16px; gap: 14px 20px; width: 100%; box-sizing: border-box; }
+      .logos-row { border-radius: 16px; padding: 10px 14px; gap: 10px 16px; width: 100%; box-sizing: border-box; }
+      .logo { font-size: 14px; }
+      .hero-inner { padding: 16px 14px 20px; }
+      .hero-title { font-size: clamp(26px, 7.5vw, 38px); line-height: 1.15; }
+      .hero-sub { font-size: 14.5px; line-height: 1.55; margin-top: 14px; }
+      .hero-actions {
+        width: 100%;
+        max-width: 340px;
+        margin: 22px auto 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 12px 18px;
+        font-size: 14px;
+        min-height: 46px;
+      }
+      .logos { margin-top: 16px; padding-bottom: 28px; }
+      .contact-method-item { padding: 12px 14px; gap: 10px; min-width: 0; }
+      .contact-method-text { min-width: 0; flex: 1; overflow: hidden; }
+      .contact-method-text h5 { font-size: 14.5px; margin-bottom: 2px; }
+      .contact-method-text span {
+        word-break: break-all;
+        overflow-wrap: anywhere;
+        font-size: clamp(10.5px, 2.9vw, 12px) !important;
+        line-height: 1.35;
+      }
+      .contact-method-text strong {
+        font-size: 14px;
+      }
     }
 
     /* 5. Mobile Phones (max-width: 480px) */
     @media (max-width: 480px) {
-      .section { padding: 48px 14px; }
-      .nav { padding: 12px 14px; }
+      .section { padding: 42px 12px; }
+      .nav { padding: 12px 12px; }
       .brand { font-size: 16px; gap: 8px; }
       .brand-logo-img { height: 28px; }
-      .nav .btn-ghost { padding: 6px 12px; font-size: 12px; }
+      .nav .btn-ghost { padding: 6px 10px; font-size: 11.5px; }
       .nav-toggle { padding: 6px 10px; }
-      .process-pipeline { grid-template-columns: 1fr; }
-      .client-wall { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .client-wall-item { padding: 14px 10px; font-size: 12px; }
-      .footer { grid-template-columns: 1fr; }
+      .client-wall { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .client-wall-item { padding: 12px 8px; font-size: 11.5px; }
       .stats { grid-template-columns: 1fr; }
-      .stat { padding: 20px 14px; }
-      .cta-card { padding: 32px 16px; border-radius: 18px; }
-      .cta-card p { font-size: 15px; margin: 16px auto 26px; }
-      .hero-actions { width: 100%; max-width: 320px; }
-      .hero-actions .btn { width: 100%; justify-content: center; }
-      .btn { white-space: normal; text-align: center; max-width: 100%; line-height: 1.35; padding: 12px 18px; }
+      .stat { padding: 18px 12px; }
+      .cta-card { padding: 28px 14px; border-radius: 16px; }
+      .cta-card p { font-size: 14.5px; margin: 14px auto 22px; }
       .guardian-shield-stage { transform: scale(0.85); margin: -15px auto; }
-      .contact-method-item { padding: 12px 14px; gap: 10px; }
-      .contact-method-text span { word-break: break-all; overflow-wrap: anywhere; }
-      .timeline-line { left: 14px; }
-      .timeline-item { padding-left: 36px; padding-right: 0; }
-      .timeline-item .timeline-dot { left: 7px !important; }
       .modal-overlay { padding: 10px; }
       .modal-card { padding: 20px 14px; border-radius: 16px; max-height: 85vh; }
-      .modal-card code { word-break: break-all; }
-      .chat-widget { bottom: 16px; right: 16px; }
-      .chat-fab { width: 50px; height: 50px; }
-      .chat-window { position: fixed; bottom: 74px; left: 12px; right: 12px; width: auto; max-height: 70vh; }
+      .mobile-menu-close { width: 44px; height: 44px; font-size: 22px; }
+      .mobile-menu a { font-size: 17px; padding: 7px 0; }
+      .mobile-menu .btn-primary { width: 100%; max-width: 240px; }
     }
 
     /* 6. Ultra-Compact Screens (max-width: 360px) */
     @media (max-width: 360px) {
-      .guardian-shield-stage { transform: scale(0.75); margin: -25px auto; }
-      .tier-details span { font-size: 10px; padding: 2px 5px; }
-      .award-meta { flex-wrap: wrap; gap: 8px; }
-      .case-result-badge { font-size: 11px; }
+      .guardian-shield-stage { transform: scale(0.72); margin: -25px auto; }
+      .tier-details span { font-size: 10px; padding: 2px 4px; }
+      .award-meta { flex-wrap: wrap; gap: 6px; }
+      .case-result-badge { font-size: 10.5px; }
+      .logos-row { gap: 8px 12px; }
+      .logo { font-size: 12.5px; }
     }
 
     /* prefers-reduced-motion */
@@ -2515,10 +2583,11 @@
     if (preloader && !preloader.classList.contains('loaded')) preloader.classList.add('loaded');
   }, 1800);
 
-  // 2. Custom Luxury Cursor
+  // 2. Custom Luxury Cursor (Desktop fine-pointer only; disabled on touch/mobile)
   const dot = document.getElementById('cursor-dot');
   const ring = document.getElementById('cursor-ring');
-  if (dot && ring) {
+  const isFinePointer = window.matchMedia('(pointer: fine)').matches && window.innerWidth > 1024;
+  if (dot && ring && isFinePointer) {
     let mX = window.innerWidth / 2, mY = window.innerHeight / 2;
     let rX = mX, rY = mY;
     window.addEventListener('mousemove', (e) => {
@@ -2536,6 +2605,9 @@
       el.addEventListener('mouseenter', () => document.body.classList.add('cursor-active'));
       el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-active'));
     });
+  } else if (dot && ring) {
+    dot.style.display = 'none';
+    ring.style.display = 'none';
   }
 
   // 3. Mobile Navigation Drawer
@@ -2543,10 +2615,22 @@
   const mobileMenu = document.getElementById('mobile-menu');
   const mobileClose = document.getElementById('mobile-menu-close');
   if (navToggle && mobileMenu) {
-    navToggle.addEventListener('click', () => mobileMenu.classList.add('open'));
-    if (mobileClose) mobileClose.addEventListener('click', () => mobileMenu.classList.remove('open'));
+    navToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mobileMenu.classList.add('open');
+    });
+    if (mobileClose) {
+      mobileClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mobileMenu.classList.remove('open');
+      });
+    }
     document.querySelectorAll('.mobile-link').forEach(link => {
       link.addEventListener('click', () => mobileMenu.classList.remove('open'));
+    });
+    // Backdrop click dismiss
+    mobileMenu.addEventListener('click', (e) => {
+      if (e.target === mobileMenu) mobileMenu.classList.remove('open');
     });
   }
 
@@ -2724,8 +2808,22 @@
   const chatClose = document.getElementById('chat-close');
   const chatBody = document.getElementById('chat-body');
   if (chatFab && chatWindow) {
-    chatFab.addEventListener('click', () => chatWindow.classList.toggle('open'));
-    if (chatClose) chatClose.addEventListener('click', () => chatWindow.classList.remove('open'));
+    chatFab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      chatWindow.classList.toggle('open');
+    });
+    if (chatClose) {
+      chatClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        chatWindow.classList.remove('open');
+      });
+    }
+    // Dismiss chat on backdrop/outside tap on touch devices
+    document.addEventListener('click', (e) => {
+      if (chatWindow.classList.contains('open') && !chatWindow.contains(e.target) && e.target !== chatFab && !chatFab.contains(e.target)) {
+        chatWindow.classList.remove('open');
+      }
+    });
   }
 
   const assistantAnswers = {
@@ -2969,7 +3067,7 @@
     );
     const getLapImg = lapMgr.getImg;
 
-    // High-Definition Cover Sizing Math (Bicubic Interpolation)
+    // High-Definition Cover Sizing Math (Bicubic Interpolation & Mobile Subject Anchor)
     function drawCover(context, targetCanvas, img) {
       const cw = targetCanvas.width;
       const ch = targetCanvas.height;
@@ -2989,7 +3087,12 @@
       } else {
         dh = ch;
         dw = ch * imgRatio;
-        dx = (cw - dw) * 0.5;
+        // On portrait/mobile viewports (aspect ratio < 0.9), anchor the focal point near the 3D subject (~68% x-axis)
+        // so the 3D model is dramatically framed in the mobile viewport instead of being pushed off-screen.
+        const focalX = canvasRatio < 0.9 ? 0.68 : 0.5;
+        dx = (cw * 0.5) - (dw * focalX);
+        // Ensure dx never leaves empty margins
+        dx = Math.min(0, Math.max(cw - dw, dx));
         dy = 0;
       }
 
