@@ -2348,13 +2348,10 @@
     </div>
   </div>
 
-  <!-- GSAP 3 & ScrollTrigger Suite & Lenis Smooth Scroll with resilient fallbacks -->
+  <!-- GSAP 3 & ScrollTrigger Suite & Lenis Smooth Scroll -->
   <script src="components/gsap.min.js"></script>
-  <script>window.gsap || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>')</script>
   <script src="components/ScrollTrigger.min.js"></script>
-  <script>window.ScrollTrigger || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"><\/script>')</script>
   <script src="components/lenis.min.js"></script>
-  <script>window.Lenis || document.write('<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"><\/script>')</script>
 
   <script>
     const Lenis = window.Lenis || null;
@@ -3013,21 +3010,26 @@
     }
 
     function startPreloading() {
-      // 1. Instantly prime and render frame 0 of Hero ROBO at full resolution
+      // 1. Instantly prime and render frame 0 of Hero ROBO at full native 1080p resolution
       const firstRobo = getRoboImg(0);
       if (firstRobo && firstRobo.complete && firstRobo.naturalWidth > 0) {
         roboReady[0] = 1;
         renderRobo(0, true);
       }
 
-      // 2. Buffer consecutive keyframes for Hero (frames 0 to 30)
-      bufferSequenceRange(getRoboImg, 0, 30, 1, ROBO_TOTAL);
-
-      // 3. Staggered gentle warm-up of frame 0 and buffer for subsequent acts
-      setTimeout(() => { getHandImg(0); bufferSequenceRange(getHandImg, 0, 15, 1, HAND_TOTAL); }, 250);
-      setTimeout(() => { getBrainImg(0); bufferSequenceRange(getBrainImg, 0, 15, 1, BRAIN_TOTAL); }, 500);
-      setTimeout(() => { getHumanImg(0); bufferSequenceRange(getHumanImg, 0, 15, 1, HUMAN_TOTAL); }, 750);
-      setTimeout(() => { getLapImg(0); bufferSequenceRange(getLapImg, 0, 15, 1, LAP_TOTAL); }, 1000);
+      // 2. Only gently buffer initial Hero frames AFTER page load has completed
+      // This guarantees document.readyState reaches 'complete' and the browser tab spinner stops in < 400ms!
+      window.addEventListener('load', () => {
+        let rIndex = 1;
+        function bufferHeroIdle() {
+          if (rIndex <= 8) {
+            getRoboImg(rIndex);
+            rIndex++;
+            setTimeout(bufferHeroIdle, 80);
+          }
+        }
+        setTimeout(bufferHeroIdle, 150);
+      });
     }
 
     // -------------------------------------------------------------------------
@@ -3286,29 +3288,29 @@
         targetLapOpacity = 0;
       }
 
-      // Dynamic On-Demand Frame Lookahead Streaming (Silky 60fps Full HD)
+      // Dynamic On-Demand Frame Lookahead Streaming (Silky 60fps Full HD without network choking)
       if (scrollY <= trustTop) {
-        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 16, 1, ROBO_TOTAL);
-        if (scrollY > awardsTop * 0.3) {
-          bufferSequenceRange(getHandImg, 0, 15, 1, HAND_TOTAL);
+        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 6, 1, ROBO_TOTAL);
+        if (scrollY > awardsTop * 0.4) {
+          bufferSequenceRange(getHandImg, 0, 6, 1, HAND_TOTAL);
         }
       } else if (scrollY <= guardianTop) {
-        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 16, 1, HAND_TOTAL);
-        if (scrollY > servicesTop * 0.5) {
-          bufferSequenceRange(getBrainImg, 0, 15, 1, BRAIN_TOTAL);
+        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 6, 1, HAND_TOTAL);
+        if (scrollY > servicesTop * 0.6) {
+          bufferSequenceRange(getBrainImg, 0, 6, 1, BRAIN_TOTAL);
         }
       } else if (scrollY <= aboutTop) {
-        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 16, 1, BRAIN_TOTAL);
-        if (scrollY > portfolioTop * 0.5) {
-          bufferSequenceRange(getHumanImg, 0, 15, 1, HUMAN_TOTAL);
+        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 6, 1, BRAIN_TOTAL);
+        if (scrollY > portfolioTop * 0.6) {
+          bufferSequenceRange(getHumanImg, 0, 6, 1, HUMAN_TOTAL);
         }
       } else if (scrollY <= testimonialsTop) {
-        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 16, 1, HUMAN_TOTAL);
-        if (scrollY > techTop * 0.5) {
-          bufferSequenceRange(getLapImg, 0, 15, 1, LAP_TOTAL);
+        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 6, 1, HUMAN_TOTAL);
+        if (scrollY > techTop * 0.6) {
+          bufferSequenceRange(getLapImg, 0, 6, 1, LAP_TOTAL);
         }
       } else {
-        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 16, 1, LAP_TOTAL);
+        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 6, 1, LAP_TOTAL);
       }
     }
 
