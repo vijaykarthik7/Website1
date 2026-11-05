@@ -2460,14 +2460,12 @@
 
     let lenis = null;
     const isTouch = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
-    if (!isReducedMotion && window.Lenis) {
+    if (!isTouch && !isReducedMotion && window.Lenis) {
       lenis = new window.Lenis({
-        duration: isTouch ? 0.6 : 1.15,
+        duration: 1.15,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
         wheelMultiplier: 0.95,
-        touchMultiplier: 0, // Native touch scrolling on touch devices: eliminates scroll freezes & lockups
-        syncTouch: false,
       });
 
       // Map Lenis 1:1 with GSAP ticker & ScrollTrigger
@@ -2480,21 +2478,25 @@
         });
         gsap.ticker.lagSmoothing(0);
       }
+    }
 
-      // Single-page smooth anchor navigation
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', (e) => {
-          const href = anchor.getAttribute('href');
-          if (href && href !== '#') {
-            const targetEl = document.querySelector(href);
-            if (targetEl) {
-              e.preventDefault();
+    // Single-page smooth anchor navigation (Desktop Lenis or Native Mobile Smooth)
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        const href = anchor.getAttribute('href');
+        if (href && href !== '#') {
+          const targetEl = document.querySelector(href);
+          if (targetEl) {
+            e.preventDefault();
+            if (lenis) {
               lenis.scrollTo(targetEl, { offset: -30, duration: 1.2 });
+            } else {
+              targetEl.scrollIntoView({ behavior: 'smooth' });
             }
           }
-        });
+        }
       });
-    }
+    });
 
     // Refresh ScrollTrigger on dynamic asset loads & font ready
     if (window.ScrollTrigger) {
@@ -2860,14 +2862,14 @@
     // Act 3 (BRAINROBO): Guardian + Industries + Portfolio (Sections 5, 6 & 7)
     // Act 4 (HUMANROBO): About + Technology + Testimonials (Sections 8, 9 & 10)
     // =========================================================================
-    const ROBO_FRAMES = ["frame_001.png","frame_002.png","frame_003.png","frame_004.png","frame_005.png","frame_006.png","frame_007.png","frame_008.png","frame_009.png","frame_010.png","frame_011.png","frame_012.png","frame_013.png","frame_014.png","frame_015.png","frame_016.png","frame_017.png","frame_018.png","frame_019.png","frame_020.png","frame_021.png","frame_022.png","frame_023.png","frame_024.png","frame_025.png","frame_026.png","frame_027.png","frame_028.png","frame_029.png","frame_030.png","frame_031.png","frame_032.png","frame_033.png","frame_034.png","frame_035.png","frame_036.png","frame_037.png","frame_038.png","frame_039.png","frame_040.png","frame_041.png","frame_042.png","frame_043.png","frame_044.png","frame_045.png","frame_046.png","frame_047.png","frame_048.png","frame_049.png","frame_050.png","frame_051.png","frame_052.png","frame_053.png","frame_054.png","frame_055.png","frame_056.png","frame_057.png","frame_058.png","frame_059.png","frame_060.png","frame_061.png","frame_062.png","frame_063.png","frame_064.png","frame_065.png","frame_066.png","frame_067.png","frame_068.png","frame_069.png","frame_070.png","frame_071.png","frame_072.png","frame_073.png","frame_074.png","frame_075.png","frame_076.png","frame_077.png","frame_078.png","frame_079.png","frame_080.png","frame_081.png","frame_082.png","frame_083.png","frame_084.png","frame_085.png","frame_086.png","frame_087.png","frame_088.png","frame_089.png","frame_090.png","frame_091.png","frame_092.png","frame_093.png","frame_094.png","frame_095.png","frame_096.png","frame_097.png","frame_098.png","frame_099.png","frame_100.png","frame_101.png","frame_102.png","frame_103.png","frame_104.png","frame_105.png","frame_106.png","frame_107.png","frame_108.png","frame_109.png","frame_110.png","frame_111.png","frame_112.png","frame_113.png","frame_114.png","frame_115.png","frame_116.png","frame_117.png","frame_118.png","frame_119.png","frame_120.png","frame_121.png","frame_122.png","frame_123.png","frame_124.png","frame_125.png","frame_126.png","frame_127.png","frame_128.png","frame_129.png","frame_130.png","frame_132.png","frame_133.png","frame_134.png","frame_135.png","frame_136.png","frame_137.png","frame_138.png","frame_141.png","frame_143.png","frame_144.png"];
-    const HAND_FRAMES = ["frame_001.png","frame_002.png","frame_003.png","frame_004.png","frame_005.png","frame_006.png","frame_007.png","frame_008.png","frame_009.png","frame_010.png","frame_011.png","frame_012.png","frame_013.png","frame_014.png","frame_015.png","frame_016.png","frame_017.png","frame_018.png","frame_019.png","frame_020.png","frame_021.png","frame_022.png","frame_023.png","frame_024.png","frame_025.png","frame_026.png","frame_027.png","frame_028.png","frame_029.png","frame_030.png","frame_031.png","frame_032.png","frame_033.png","frame_034.png","frame_035.png","frame_036.png","frame_037.png","frame_038.png","frame_039.png","frame_040.png","frame_041.png","frame_042.png","frame_043.png","frame_044.png","frame_045.png","frame_046.png","frame_047.png","frame_048.png","frame_049.png","frame_050.png","frame_051.png","frame_052.png","frame_053.png","frame_054.png","frame_055.png","frame_056.png","frame_057.png","frame_058.png","frame_059.png","frame_060.png","frame_061.png","frame_062.png","frame_063.png","frame_064.png","frame_065.png","frame_066.png","frame_067.png","frame_068.png","frame_069.png","frame_070.png","frame_071.png","frame_072.png","frame_073.png","frame_074.png","frame_075.png","frame_076.png","frame_077.png","frame_078.png","frame_079.png","frame_080.png","frame_081.png","frame_082.png","frame_083.png","frame_084.png","frame_085.png","frame_086.png","frame_087.png","frame_088.png","frame_089.png","frame_090.png","frame_091.png","frame_092.png","frame_093.png","frame_094.png","frame_095.png","frame_096.png","frame_097.png","frame_098.png","frame_099.png","frame_100.png","frame_101.png","frame_102.png","frame_103.png","frame_104.png","frame_105.png","frame_106.png","frame_107.png","frame_108.png","frame_109.png","frame_110.png","frame_111.png","frame_112.png","frame_113.png","frame_114.png","frame_115.png","frame_116.png","frame_117.png","frame_118.png","frame_119.png","frame_120.png","frame_121.png","frame_122.png","frame_123.png","frame_124.png","frame_125.png","frame_126.png","frame_127.png","frame_128.png","frame_129.png","frame_130.png","frame_131.png","frame_132.png","frame_133.png","frame_134.png","frame_136.png"];
+    const ROBO_FRAMES = ["frame_001.webp","frame_002.webp","frame_003.webp","frame_004.webp","frame_005.webp","frame_006.webp","frame_007.webp","frame_008.webp","frame_009.webp","frame_010.webp","frame_011.webp","frame_012.webp","frame_013.webp","frame_014.webp","frame_015.webp","frame_016.webp","frame_017.webp","frame_018.webp","frame_019.webp","frame_020.webp","frame_021.webp","frame_022.webp","frame_023.webp","frame_024.webp","frame_025.webp","frame_026.webp","frame_027.webp","frame_028.webp","frame_029.webp","frame_030.webp","frame_031.webp","frame_032.webp","frame_033.webp","frame_034.webp","frame_035.webp","frame_036.webp","frame_037.webp","frame_038.webp","frame_039.webp","frame_040.webp","frame_041.webp","frame_042.webp","frame_043.webp","frame_044.webp","frame_045.webp","frame_046.webp","frame_047.webp","frame_048.webp","frame_049.webp","frame_050.webp","frame_051.webp","frame_052.webp","frame_053.webp","frame_054.webp","frame_055.webp","frame_056.webp","frame_057.webp","frame_058.webp","frame_059.webp","frame_060.webp","frame_061.webp","frame_062.webp","frame_063.webp","frame_064.webp","frame_065.webp","frame_066.webp","frame_067.webp","frame_068.webp","frame_069.webp","frame_070.webp","frame_071.webp","frame_072.webp","frame_073.webp","frame_074.webp","frame_075.webp","frame_076.webp","frame_077.webp","frame_078.webp","frame_079.webp","frame_080.webp","frame_081.webp","frame_082.webp","frame_083.webp","frame_084.webp","frame_085.webp","frame_086.webp","frame_087.webp","frame_088.webp","frame_089.webp","frame_090.webp","frame_091.webp","frame_092.webp","frame_093.webp","frame_094.webp","frame_095.webp","frame_096.webp","frame_097.webp","frame_098.webp","frame_099.webp","frame_100.webp","frame_101.webp","frame_102.webp","frame_103.webp","frame_104.webp","frame_105.webp","frame_106.webp","frame_107.webp","frame_108.webp","frame_109.webp","frame_110.webp","frame_111.webp","frame_112.webp","frame_113.webp","frame_114.webp","frame_115.webp","frame_116.webp","frame_117.webp","frame_118.webp","frame_119.webp","frame_120.webp","frame_121.webp","frame_122.webp","frame_123.webp","frame_124.webp","frame_125.webp","frame_126.webp","frame_127.webp","frame_128.webp","frame_129.webp","frame_130.webp","frame_132.webp","frame_133.webp","frame_134.webp","frame_135.webp","frame_136.webp","frame_137.webp","frame_138.webp","frame_141.webp","frame_143.webp","frame_144.webp"];
+    const HAND_FRAMES = ["frame_001.webp","frame_002.webp","frame_003.webp","frame_004.webp","frame_005.webp","frame_006.webp","frame_007.webp","frame_008.webp","frame_009.webp","frame_010.webp","frame_011.webp","frame_012.webp","frame_013.webp","frame_014.webp","frame_015.webp","frame_016.webp","frame_017.webp","frame_018.webp","frame_019.webp","frame_020.webp","frame_021.webp","frame_022.webp","frame_023.webp","frame_024.webp","frame_025.webp","frame_026.webp","frame_027.webp","frame_028.webp","frame_029.webp","frame_030.webp","frame_031.webp","frame_032.webp","frame_033.webp","frame_034.webp","frame_035.webp","frame_036.webp","frame_037.webp","frame_038.webp","frame_039.webp","frame_040.webp","frame_041.webp","frame_042.webp","frame_043.webp","frame_044.webp","frame_045.webp","frame_046.webp","frame_047.webp","frame_048.webp","frame_049.webp","frame_050.webp","frame_051.webp","frame_052.webp","frame_053.webp","frame_054.webp","frame_055.webp","frame_056.webp","frame_057.webp","frame_058.webp","frame_059.webp","frame_060.webp","frame_061.webp","frame_062.webp","frame_063.webp","frame_064.webp","frame_065.webp","frame_066.webp","frame_067.webp","frame_068.webp","frame_069.webp","frame_070.webp","frame_071.webp","frame_072.webp","frame_073.webp","frame_074.webp","frame_075.webp","frame_076.webp","frame_077.webp","frame_078.webp","frame_079.webp","frame_080.webp","frame_081.webp","frame_082.webp","frame_083.webp","frame_084.webp","frame_085.webp","frame_086.webp","frame_087.webp","frame_088.webp","frame_089.webp","frame_090.webp","frame_091.webp","frame_092.webp","frame_093.webp","frame_094.webp","frame_095.webp","frame_096.webp","frame_097.webp","frame_098.webp","frame_099.webp","frame_100.webp","frame_101.webp","frame_102.webp","frame_103.webp","frame_104.webp","frame_105.webp","frame_106.webp","frame_107.webp","frame_108.webp","frame_109.webp","frame_110.webp","frame_111.webp","frame_112.webp","frame_113.webp","frame_114.webp","frame_115.webp","frame_116.webp","frame_117.webp","frame_118.webp","frame_119.webp","frame_120.webp","frame_121.webp","frame_122.webp","frame_123.webp","frame_124.webp","frame_125.webp","frame_126.webp","frame_127.webp","frame_128.webp","frame_129.webp","frame_130.webp","frame_131.webp","frame_132.webp","frame_133.webp","frame_134.webp","frame_136.webp"];
     // Act 3 (BRAINROBO): Guardian + Industries + Portfolio (Sections 5, 6 & 7) - 192 frames
     const BRAIN_FRAMES = Array.from({ length: 192 }, (_, i) => `ezgif-frame-${String(i + 1).padStart(3, '0')}.jpg`);
     // Act 4 (HUMANROBO): About + Technology (Sections 8 & 9) - 192 frames
     const HUMAN_FRAMES = Array.from({ length: 192 }, (_, i) => `ezgif-frame-${String(i + 1).padStart(3, '0')}.jpg`);
     // Act 5 (LAP): Testimonials + Estimator + Contact (Sections 10, 11 & 12) - 240 frames
-    const LAP_FRAMES = Array.from({ length: 240 }, (_, i) => `ezgif-frame-${String(i + 1).padStart(3, '0')}.png`);
+    const LAP_FRAMES = Array.from({ length: 240 }, (_, i) => `ezgif-frame-${String(i + 1).padStart(3, '0')}.webp`);
 
     const ROBO_TOTAL = ROBO_FRAMES.length;
     const HAND_TOTAL = HAND_FRAMES.length;
@@ -2952,8 +2954,11 @@
           const img = new Image();
           img.onload = () => {
             ready[idx] = 1;
-            if (Math.round(getFrameFn()) === idx && getOpacityFn() > 0.001) {
-              renderFn(idx);
+            if (getOpacityFn() > 0.001) {
+              const cur = Math.round(getFrameFn());
+              if (Math.abs(cur - idx) <= 6) {
+                renderFn(cur, true);
+              }
             }
           };
           img.onerror = () => {
@@ -2986,14 +2991,16 @@
 
     // Act 1: ROBO
     let lastRoboDrawn = -1;
+    let lastRoboImg = null;
     function renderRobo(idx, force = false) {
       if (!roboCtx || !roboCanvas) return;
       const clamped = Math.max(0, Math.min(ROBO_TOTAL - 1, idx));
-      if (!force && clamped === lastRoboDrawn) return;
       const img = roboMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      if (!force && clamped === lastRoboDrawn && img === lastRoboImg) return;
       drawCover(roboCtx, roboCanvas, img, 0.52, 0.38);
       lastRoboDrawn = clamped;
+      lastRoboImg = img;
     }
     const roboMgr = createFrameManager(
       './ROBO/', ROBO_FRAMES, roboCache, roboReady,
@@ -3003,14 +3010,16 @@
 
     // Act 2: HAND
     let lastHandDrawn = -1;
+    let lastHandImg = null;
     function renderHand(idx, force = false) {
       if (!handCtx || !handCanvas || currentHandOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(HAND_TOTAL - 1, idx));
-      if (!force && clamped === lastHandDrawn) return;
       const img = handMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      if (!force && clamped === lastHandDrawn && img === lastHandImg) return;
       drawCover(handCtx, handCanvas, img, 0.50, 0.38);
       lastHandDrawn = clamped;
+      lastHandImg = img;
     }
     const handMgr = createFrameManager(
       './Hand/', HAND_FRAMES, handCache, handReady,
@@ -3020,14 +3029,16 @@
 
     // Act 3: BRAINROBO
     let lastBrainDrawn = -1;
+    let lastBrainImg = null;
     function renderBrain(idx, force = false) {
       if (!brainCtx || !brainCanvas || currentBrainOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(BRAIN_TOTAL - 1, idx));
-      if (!force && clamped === lastBrainDrawn) return;
       const img = brainMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      if (!force && clamped === lastBrainDrawn && img === lastBrainImg) return;
       drawCover(brainCtx, brainCanvas, img, 0.50, 0.38);
       lastBrainDrawn = clamped;
+      lastBrainImg = img;
     }
     const brainMgr = createFrameManager(
       './brainrobo/', BRAIN_FRAMES, brainCache, brainReady,
@@ -3037,14 +3048,16 @@
 
     // Act 4: HUMANROBO
     let lastHumanDrawn = -1;
+    let lastHumanImg = null;
     function renderHuman(idx, force = false) {
       if (!humanCtx || !humanCanvas || currentHumanOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(HUMAN_TOTAL - 1, idx));
-      if (!force && clamped === lastHumanDrawn) return;
       const img = humanMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      if (!force && clamped === lastHumanDrawn && img === lastHumanImg) return;
       drawCover(humanCtx, humanCanvas, img, 0.58, 0.38);
       lastHumanDrawn = clamped;
+      lastHumanImg = img;
     }
     const humanMgr = createFrameManager(
       './HumanRobo/', HUMAN_FRAMES, humanCache, humanReady,
@@ -3054,14 +3067,16 @@
 
     // Act 5: LAP
     let lastLapDrawn = -1;
+    let lastLapImg = null;
     function renderLap(idx, force = false) {
       if (!lapCtx || !lapCanvas || currentLapOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(LAP_TOTAL - 1, idx));
-      if (!force && clamped === lastLapDrawn) return;
       const img = lapMgr.findBest(clamped);
       if (!img || !img.complete || img.naturalWidth === 0) return;
+      if (!force && clamped === lastLapDrawn && img === lastLapImg) return;
       drawCover(lapCtx, lapCanvas, img, 0.50, 0.38);
       lastLapDrawn = clamped;
+      lastLapImg = img;
     }
     const lapMgr = createFrameManager(
       './Lap/', LAP_FRAMES, lapCache, lapReady,
@@ -3070,6 +3085,9 @@
     const getLapImg = lapMgr.getImg;
 
     // High-Definition Cover Sizing Math (Adaptive Fit for Mobile & Desktop)
+    let lastVigKey = '';
+    let topG, btmG, leftG, rightG;
+
     function drawCover(context, targetCanvas, img, focalX = 0.52, focalY = 0.42) {
       const cw = targetCanvas.width;
       const ch = targetCanvas.height;
@@ -3112,32 +3130,35 @@
 
         // Feathered edge vignette: seamless dissolve into #050505 page black
         const fSize = Math.round(Math.min(dw, dh) * 0.14);
+        const vigKey = `${cw}_${ch}_${dx}_${dy}_${dw}_${dh}_${fSize}`;
+        if (vigKey !== lastVigKey) {
+          lastVigKey = vigKey;
+          topG = context.createLinearGradient(0, dy, 0, dy + fSize);
+          topG.addColorStop(0, '#050505');
+          topG.addColorStop(1, 'rgba(5,5,5,0)');
 
-        // Top fade
-        const topG = context.createLinearGradient(0, dy, 0, dy + fSize);
-        topG.addColorStop(0, '#050505');
-        topG.addColorStop(1, 'rgba(5,5,5,0)');
+          btmG = context.createLinearGradient(0, dy + dh - fSize, 0, dy + dh);
+          btmG.addColorStop(0, 'rgba(5,5,5,0)');
+          btmG.addColorStop(1, '#050505');
+
+          leftG = context.createLinearGradient(dx, 0, dx + fSize, 0);
+          leftG.addColorStop(0, '#050505');
+          leftG.addColorStop(1, 'rgba(5,5,5,0)');
+
+          rightG = context.createLinearGradient(dx + dw - fSize, 0, dx + dw, 0);
+          rightG.addColorStop(0, 'rgba(5,5,5,0)');
+          rightG.addColorStop(1, '#050505');
+        }
+
         context.fillStyle = topG;
         context.fillRect(0, Math.max(0, dy - 2), cw, fSize + 4);
 
-        // Bottom fade
-        const btmG = context.createLinearGradient(0, dy + dh - fSize, 0, dy + dh);
-        btmG.addColorStop(0, 'rgba(5,5,5,0)');
-        btmG.addColorStop(1, '#050505');
         context.fillStyle = btmG;
         context.fillRect(0, dy + dh - fSize - 2, cw, fSize + 6);
 
-        // Left fade
-        const leftG = context.createLinearGradient(dx, 0, dx + fSize, 0);
-        leftG.addColorStop(0, '#050505');
-        leftG.addColorStop(1, 'rgba(5,5,5,0)');
         context.fillStyle = leftG;
         context.fillRect(Math.max(0, dx - 2), 0, fSize + 4, ch);
 
-        // Right fade
-        const rightG = context.createLinearGradient(dx + dw - fSize, 0, dx + dw, 0);
-        rightG.addColorStop(0, 'rgba(5,5,5,0)');
-        rightG.addColorStop(1, '#050505');
         context.fillStyle = rightG;
         context.fillRect(dx + dw - fSize - 2, 0, fSize + 6, ch);
       }
@@ -3261,12 +3282,17 @@
     // -------------------------------------------------------------------------
     const spotlightEls = document.querySelectorAll('.hero-inner, .hero .logos, .section');
     let lastSpotlightTick = 0;
+    let mobileSpotlightsSet = false;
+
     function updateSpotlights(force = false) {
       if (window.innerWidth <= 991) {
-        spotlightEls.forEach(el => {
-          el.classList.add('spotlight-active');
-          el.classList.remove('spotlight-leaving');
-        });
+        if (!mobileSpotlightsSet) {
+          spotlightEls.forEach(el => {
+            el.classList.add('spotlight-active');
+            el.classList.remove('spotlight-leaving');
+          });
+          mobileSpotlightsSet = true;
+        }
         return;
       }
       const now = performance.now();
@@ -3439,28 +3465,37 @@
       // Dynamic On-Demand Frame Lookahead Streaming (Silky 60fps Full HD without network choking)
       // Strictly defer lookahead buffering until user actively scrolls (scrollY > 5)
       if (scrollY > 5) {
+        const sRadius = isTouch ? 4 : 6;
+        const sStride = isTouch ? 2 : 1;
+
+        // Early prime sequence base frames ahead of section entry
+        if (scrollY > awardsTop * 0.2) getHandImg(0);
+        if (scrollY > servicesTop * 0.3) getBrainImg(0);
+        if (scrollY > portfolioTop * 0.3) getHumanImg(0);
+        if (scrollY > techTop * 0.3) getLapImg(0);
+
         if (scrollY <= trustTop) {
-          bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 6, 1, ROBO_TOTAL);
+          bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), sRadius, sStride, ROBO_TOTAL);
           if (scrollY > awardsTop * 0.4) {
-            bufferSequenceRange(getHandImg, 0, 6, 1, HAND_TOTAL);
+            bufferSequenceRange(getHandImg, 0, sRadius, sStride, HAND_TOTAL);
           }
         } else if (scrollY <= guardianTop) {
-          bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 6, 1, HAND_TOTAL);
-          if (scrollY > servicesTop * 0.6) {
-            bufferSequenceRange(getBrainImg, 0, 6, 1, BRAIN_TOTAL);
+          bufferSequenceRange(getHandImg, Math.round(targetHandFrame), sRadius, sStride, HAND_TOTAL);
+          if (scrollY > servicesTop * 0.5) {
+            bufferSequenceRange(getBrainImg, 0, sRadius, sStride, BRAIN_TOTAL);
           }
         } else if (scrollY <= aboutTop) {
-          bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 6, 1, BRAIN_TOTAL);
-          if (scrollY > portfolioTop * 0.6) {
-            bufferSequenceRange(getHumanImg, 0, 6, 1, HUMAN_TOTAL);
+          bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), sRadius, sStride, BRAIN_TOTAL);
+          if (scrollY > portfolioTop * 0.5) {
+            bufferSequenceRange(getHumanImg, 0, sRadius, sStride, HUMAN_TOTAL);
           }
         } else if (scrollY <= testimonialsTop) {
-          bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 6, 1, HUMAN_TOTAL);
-          if (scrollY > techTop * 0.6) {
-            bufferSequenceRange(getLapImg, 0, 6, 1, LAP_TOTAL);
+          bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), sRadius, sStride, HUMAN_TOTAL);
+          if (scrollY > techTop * 0.5) {
+            bufferSequenceRange(getLapImg, 0, sRadius, sStride, LAP_TOTAL);
           }
         } else {
-          bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 6, 1, LAP_TOTAL);
+          bufferSequenceRange(getLapImg, Math.round(targetLapFrame), sRadius, sStride, LAP_TOTAL);
         }
       }
     }
