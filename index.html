@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.png">
 
   <!-- Lenis Smooth Scrolling Engine -->
@@ -2932,11 +2934,11 @@
         }
       });
 
-      renderRobo(Math.round(currentRoboFrame), true);
-      renderHand(Math.round(currentHandFrame), true);
-      renderBrain(Math.round(currentBrainFrame), true);
-      renderHuman(Math.round(currentHumanFrame), true);
-      renderLap(Math.round(currentLapFrame), true);
+      if (currentRoboOpacity > 0.001) renderRobo(Math.round(currentRoboFrame), true);
+      if (currentHandOpacity > 0.001) renderHand(Math.round(currentHandFrame), true);
+      if (currentBrainOpacity > 0.001) renderBrain(Math.round(currentBrainFrame), true);
+      if (currentHumanOpacity > 0.001) renderHuman(Math.round(currentHumanFrame), true);
+      if (currentLapOpacity > 0.001) renderLap(Math.round(currentLapFrame), true);
     }
 
     // -------------------------------------------------------------------------
@@ -3002,7 +3004,7 @@
     // Act 2: HAND
     let lastHandDrawn = -1;
     function renderHand(idx, force = false) {
-      if (!handCtx || !handCanvas) return;
+      if (!handCtx || !handCanvas || currentHandOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(HAND_TOTAL - 1, idx));
       if (!force && clamped === lastHandDrawn) return;
       const img = handMgr.findBest(clamped);
@@ -3019,7 +3021,7 @@
     // Act 3: BRAINROBO
     let lastBrainDrawn = -1;
     function renderBrain(idx, force = false) {
-      if (!brainCtx || !brainCanvas) return;
+      if (!brainCtx || !brainCanvas || currentBrainOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(BRAIN_TOTAL - 1, idx));
       if (!force && clamped === lastBrainDrawn) return;
       const img = brainMgr.findBest(clamped);
@@ -3036,7 +3038,7 @@
     // Act 4: HUMANROBO
     let lastHumanDrawn = -1;
     function renderHuman(idx, force = false) {
-      if (!humanCtx || !humanCanvas) return;
+      if (!humanCtx || !humanCanvas || currentHumanOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(HUMAN_TOTAL - 1, idx));
       if (!force && clamped === lastHumanDrawn) return;
       const img = humanMgr.findBest(clamped);
@@ -3053,7 +3055,7 @@
     // Act 5: LAP
     let lastLapDrawn = -1;
     function renderLap(idx, force = false) {
-      if (!lapCtx || !lapCanvas) return;
+      if (!lapCtx || !lapCanvas || currentLapOpacity <= 0.001) return;
       const clamped = Math.max(0, Math.min(LAP_TOTAL - 1, idx));
       if (!force && clamped === lastLapDrawn) return;
       const img = lapMgr.findBest(clamped);
@@ -3152,6 +3154,8 @@
       }
     }
 
+    let pageLoaded = false;
+
     function startPreloading() {
       // 1. Instantly prime and render frame 0 of Hero ROBO at full native 1080p resolution
       const firstRobo = getRoboImg(0);
@@ -3165,13 +3169,14 @@
       window.addEventListener('load', () => {
         let rIndex = 1;
         function bufferHeroIdle() {
-          if (rIndex <= 8) {
+          const sy = window.scrollY || window.pageYOffset || 0;
+          if (sy <= trustTop && rIndex <= 8) {
             getRoboImg(rIndex);
             rIndex++;
-            setTimeout(bufferHeroIdle, 80);
+            setTimeout(bufferHeroIdle, 90);
           }
         }
-        setTimeout(bufferHeroIdle, 150);
+        setTimeout(bufferHeroIdle, 250);
       });
     }
 
@@ -3432,28 +3437,31 @@
       }
 
       // Dynamic On-Demand Frame Lookahead Streaming (Silky 60fps Full HD without network choking)
-      if (scrollY <= trustTop) {
-        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 6, 1, ROBO_TOTAL);
-        if (scrollY > awardsTop * 0.4) {
-          bufferSequenceRange(getHandImg, 0, 6, 1, HAND_TOTAL);
+      // Strictly defer lookahead buffering until user actively scrolls (scrollY > 5)
+      if (scrollY > 5) {
+        if (scrollY <= trustTop) {
+          bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 6, 1, ROBO_TOTAL);
+          if (scrollY > awardsTop * 0.4) {
+            bufferSequenceRange(getHandImg, 0, 6, 1, HAND_TOTAL);
+          }
+        } else if (scrollY <= guardianTop) {
+          bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 6, 1, HAND_TOTAL);
+          if (scrollY > servicesTop * 0.6) {
+            bufferSequenceRange(getBrainImg, 0, 6, 1, BRAIN_TOTAL);
+          }
+        } else if (scrollY <= aboutTop) {
+          bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 6, 1, BRAIN_TOTAL);
+          if (scrollY > portfolioTop * 0.6) {
+            bufferSequenceRange(getHumanImg, 0, 6, 1, HUMAN_TOTAL);
+          }
+        } else if (scrollY <= testimonialsTop) {
+          bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 6, 1, HUMAN_TOTAL);
+          if (scrollY > techTop * 0.6) {
+            bufferSequenceRange(getLapImg, 0, 6, 1, LAP_TOTAL);
+          }
+        } else {
+          bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 6, 1, LAP_TOTAL);
         }
-      } else if (scrollY <= guardianTop) {
-        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 6, 1, HAND_TOTAL);
-        if (scrollY > servicesTop * 0.6) {
-          bufferSequenceRange(getBrainImg, 0, 6, 1, BRAIN_TOTAL);
-        }
-      } else if (scrollY <= aboutTop) {
-        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 6, 1, BRAIN_TOTAL);
-        if (scrollY > portfolioTop * 0.6) {
-          bufferSequenceRange(getHumanImg, 0, 6, 1, HUMAN_TOTAL);
-        }
-      } else if (scrollY <= testimonialsTop) {
-        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 6, 1, HUMAN_TOTAL);
-        if (scrollY > techTop * 0.6) {
-          bufferSequenceRange(getLapImg, 0, 6, 1, LAP_TOTAL);
-        }
-      } else {
-        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 6, 1, LAP_TOTAL);
       }
     }
 
@@ -3467,6 +3475,7 @@
       onScrollUpdate();
     }, { passive: true });
     window.addEventListener('load', () => {
+      pageLoaded = true;
       measureSections();
       resizeCanvases(true);
       onScrollUpdate();
