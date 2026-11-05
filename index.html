@@ -91,16 +91,13 @@
     .hero [data-reveal]{opacity:1;transform:none}
     /* Fixed Quintuple Cinematic Scroll Animation Canvases (ROBO, HAND, BRAIN, HUMAN & LAP) */
     .robo-canvas, .hand-canvas, .brain-canvas, .human-canvas, .lap-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none;will-change:opacity,transform;
-      -webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,1) 12%,rgba(0,0,0,1) 88%,transparent 100%);
-      mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,1) 12%,rgba(0,0,0,1) 88%,transparent 100%)}
-    .robo-ambient-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;will-change:opacity;background:radial-gradient(ellipse at 50% 50%, rgba(5,5,5,.10) 0%, rgba(5,5,5,.42) 55%, rgba(5,5,5,.86) 100%), linear-gradient(180deg, rgba(5,5,5,.35) 0%, transparent 20%, transparent 80%, rgba(5,5,5,.85) 100%)}
+      -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,1) 0%,rgba(0,0,0,1) 92%,transparent 100%);
+      mask-image:linear-gradient(180deg,rgba(0,0,0,1) 0%,rgba(0,0,0,1) 92%,transparent 100%)}
+    .robo-ambient-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;will-change:opacity;background:radial-gradient(ellipse at 65% 45%, transparent 35%, rgba(5,5,5,.20) 70%, rgba(5,5,5,.75) 100%), linear-gradient(180deg, rgba(5,5,5,.15) 0%, transparent 25%, transparent 75%, rgba(5,5,5,.75) 100%)}
     .page{position:relative;z-index:1}
     /* 1. Global Flow & Boundary Hygiene */
     .section{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:clamp(90px,11vw,150px) 24px;scroll-margin-top:84px;box-sizing:border-box}
     .section-transition-buffer{height:clamp(40px,6vw,80px);width:100%;pointer-events:none;position:relative}
-    .robo-ambient-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;will-change:opacity;background:radial-gradient(ellipse at 50% 50%, rgba(5,5,5,.10) 0%, rgba(5,5,5,.42) 55%, rgba(5,5,5,.86) 100%), linear-gradient(180deg, rgba(5,5,5,.35) 0%, transparent 20%, transparent 80%, rgba(5,5,5,.85) 100%);
-      -webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,1) 10%,rgba(0,0,0,1) 90%,transparent 100%);
-      mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,1) 10%,rgba(0,0,0,1) 90%,transparent 100%)}
     /* Reset CSS reveal transitions so GSAP ScrollTrigger has full master authority */
     [data-reveal]{transition:none !important}
     .eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 15px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.24);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);margin-bottom:20px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
@@ -714,11 +711,11 @@
   </div>
 
   <!-- Fixed Quintuple Cinematic Scroll Animation Background Canvases (ROBO, HAND, BRAIN, HUMAN & LAP) -->
-  <canvas class="robo-canvas" id="robo-canvas"></canvas>
-  <canvas class="hand-canvas" id="hand-canvas"></canvas>
-  <canvas class="brain-canvas" id="brain-canvas"></canvas>
-  <canvas class="human-canvas" id="human-canvas"></canvas>
-  <canvas class="lap-canvas" id="lap-canvas"></canvas>
+  <canvas class="robo-canvas" id="robo-canvas" width="1920" height="1080"></canvas>
+  <canvas class="hand-canvas" id="hand-canvas" width="1920" height="1080"></canvas>
+  <canvas class="brain-canvas" id="brain-canvas" width="1920" height="1080"></canvas>
+  <canvas class="human-canvas" id="human-canvas" width="1920" height="1080"></canvas>
+  <canvas class="lap-canvas" id="lap-canvas" width="1920" height="1080"></canvas>
   <div class="robo-ambient-overlay"></div>
 
   <!-- Page Content Container -->
@@ -2806,62 +2803,49 @@
     const lapCache = new Array(LAP_TOTAL);
     const lapReady = new Uint8Array(LAP_TOTAL);
 
-    let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    let viewW = window.innerWidth;
-    let viewH = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let viewW = 0;
+    let viewH = 0;
 
-    function resizeCanvases() {
+    function resizeCanvases(force = false) {
       const newW = window.innerWidth;
       const newH = window.innerHeight;
-      if (Math.abs(newW - viewW) < 2 && Math.abs(newH - viewH) < 120 && roboCanvas && roboCanvas.width > 0) {
+      if (!force && viewW > 0 && Math.abs(newW - viewW) < 2 && Math.abs(newH - viewH) < 80) {
         return;
       }
       viewW = newW;
       viewH = newH;
-      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       const targetW = Math.round(viewW * dpr);
       const targetH = Math.round(viewH * dpr);
 
-      if (roboCanvas && roboCtx) {
-        roboCanvas.width = targetW;
-        roboCanvas.height = targetH;
-        roboCtx.imageSmoothingEnabled = true;
-        roboCtx.imageSmoothingQuality = 'medium';
-        renderRobo(Math.round(currentRoboFrame), true);
-      }
-      if (handCanvas && handCtx) {
-        handCanvas.width = targetW;
-        handCanvas.height = targetH;
-        handCtx.imageSmoothingEnabled = true;
-        handCtx.imageSmoothingQuality = 'medium';
-        renderHand(Math.round(currentHandFrame), true);
-      }
-      if (brainCanvas && brainCtx) {
-        brainCanvas.width = targetW;
-        brainCanvas.height = targetH;
-        brainCtx.imageSmoothingEnabled = true;
-        brainCtx.imageSmoothingQuality = 'medium';
-        renderBrain(Math.round(currentBrainFrame), true);
-      }
-      if (humanCanvas && humanCtx) {
-        humanCanvas.width = targetW;
-        humanCanvas.height = targetH;
-        humanCtx.imageSmoothingEnabled = true;
-        humanCtx.imageSmoothingQuality = 'medium';
-        renderHuman(Math.round(currentHumanFrame), true);
-      }
-      if (lapCanvas && lapCtx) {
-        lapCanvas.width = targetW;
-        lapCanvas.height = targetH;
-        lapCtx.imageSmoothingEnabled = true;
-        lapCtx.imageSmoothingQuality = 'medium';
-        renderLap(Math.round(currentLapFrame), true);
-      }
+      const canvasList = [roboCanvas, handCanvas, brainCanvas, humanCanvas, lapCanvas];
+      const ctxList = [roboCtx, handCtx, brainCtx, humanCtx, lapCtx];
+
+      canvasList.forEach((c) => {
+        if (c) {
+          c.width = targetW;
+          c.height = targetH;
+        }
+      });
+
+      ctxList.forEach((ctx) => {
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+        }
+      });
+
+      renderRobo(Math.round(currentRoboFrame), true);
+      renderHand(Math.round(currentHandFrame), true);
+      renderBrain(Math.round(currentBrainFrame), true);
+      renderHuman(Math.round(currentHumanFrame), true);
+      renderLap(Math.round(currentLapFrame), true);
     }
 
     // -------------------------------------------------------------------------
-    // High-Performance Frame Management Factories
+    // High-Performance Frame Management Factories (Ultra-Crisp Nearest Frame)
     // -------------------------------------------------------------------------
     function createFrameManager(prefix, frameList, cache, ready, renderFn, getOpacityFn, getFrameFn) {
       const total = frameList.length;
@@ -2890,8 +2874,7 @@
           return cache[clamped];
         }
         getImg(clamped);
-        const maxRadius = Math.min(24, total);
-        for (let r = 1; r < maxRadius; r++) {
+        for (let r = 1; r < total; r++) {
           const prev = clamped - r;
           if (prev >= 0 && ready[prev] === 1 && cache[prev]?.complete && cache[prev]?.naturalWidth > 0) return cache[prev];
           const next = clamped + r;
@@ -2989,7 +2972,7 @@
     );
     const getLapImg = lapMgr.getImg;
 
-    // Optimized Cover Sizing Math (No redundant clearRect/fillRect)
+    // High-Definition Cover Sizing Math (Bicubic Interpolation)
     function drawCover(context, targetCanvas, img) {
       const cw = targetCanvas.width;
       const ch = targetCanvas.height;
@@ -3013,11 +2996,13 @@
         dy = 0;
       }
 
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
       context.drawImage(img, dx, dy, dw, dh);
     }
 
     // -------------------------------------------------------------------------
-    // Smart Proximity Streamer: Zero Network Congestion & Instant Response
+    // Smart Proximity Streamer: Full 1080p Quality with Zero Lag
     // -------------------------------------------------------------------------
     function bufferSequenceRange(getFn, center, radius, stride, total) {
       const start = Math.max(0, center - radius);
@@ -3028,21 +3013,21 @@
     }
 
     function startPreloading() {
-      // 1. Instantly prime frame 0 of Hero ROBO
+      // 1. Instantly prime and render frame 0 of Hero ROBO at full resolution
       const firstRobo = getRoboImg(0);
       if (firstRobo && firstRobo.complete && firstRobo.naturalWidth > 0) {
         roboReady[0] = 1;
-        renderRobo(0);
+        renderRobo(0, true);
       }
 
-      // 2. Buffer small initial window for Hero (10 keyframes)
-      bufferSequenceRange(getRoboImg, 0, 20, 2, ROBO_TOTAL);
+      // 2. Buffer consecutive keyframes for Hero (frames 0 to 30)
+      bufferSequenceRange(getRoboImg, 0, 30, 1, ROBO_TOTAL);
 
-      // 3. Staggered gentle warm-up of frame 0 for subsequent acts
-      setTimeout(() => { getHandImg(0); }, 300);
-      setTimeout(() => { getBrainImg(0); }, 600);
-      setTimeout(() => { getHumanImg(0); }, 900);
-      setTimeout(() => { getLapImg(0); }, 1200);
+      // 3. Staggered gentle warm-up of frame 0 and buffer for subsequent acts
+      setTimeout(() => { getHandImg(0); bufferSequenceRange(getHandImg, 0, 15, 1, HAND_TOTAL); }, 250);
+      setTimeout(() => { getBrainImg(0); bufferSequenceRange(getBrainImg, 0, 15, 1, BRAIN_TOTAL); }, 500);
+      setTimeout(() => { getHumanImg(0); bufferSequenceRange(getHumanImg, 0, 15, 1, HUMAN_TOTAL); }, 750);
+      setTimeout(() => { getLapImg(0); bufferSequenceRange(getLapImg, 0, 15, 1, LAP_TOTAL); }, 1000);
     }
 
     // -------------------------------------------------------------------------
@@ -3301,29 +3286,29 @@
         targetLapOpacity = 0;
       }
 
-      // Dynamic On-Demand Frame Lookahead Streaming
+      // Dynamic On-Demand Frame Lookahead Streaming (Silky 60fps Full HD)
       if (scrollY <= trustTop) {
-        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 8, 1, ROBO_TOTAL);
-        if (scrollY > awardsTop * 0.4) {
-          bufferSequenceRange(getHandImg, 0, 10, 2, HAND_TOTAL);
+        bufferSequenceRange(getRoboImg, Math.round(targetRoboFrame), 16, 1, ROBO_TOTAL);
+        if (scrollY > awardsTop * 0.3) {
+          bufferSequenceRange(getHandImg, 0, 15, 1, HAND_TOTAL);
         }
       } else if (scrollY <= guardianTop) {
-        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 8, 1, HAND_TOTAL);
-        if (scrollY > servicesTop * 0.6) {
-          bufferSequenceRange(getBrainImg, 0, 10, 2, BRAIN_TOTAL);
+        bufferSequenceRange(getHandImg, Math.round(targetHandFrame), 16, 1, HAND_TOTAL);
+        if (scrollY > servicesTop * 0.5) {
+          bufferSequenceRange(getBrainImg, 0, 15, 1, BRAIN_TOTAL);
         }
       } else if (scrollY <= aboutTop) {
-        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 10, 1, BRAIN_TOTAL);
-        if (scrollY > portfolioTop * 0.6) {
-          bufferSequenceRange(getHumanImg, 0, 10, 2, HUMAN_TOTAL);
+        bufferSequenceRange(getBrainImg, Math.round(targetBrainFrame), 16, 1, BRAIN_TOTAL);
+        if (scrollY > portfolioTop * 0.5) {
+          bufferSequenceRange(getHumanImg, 0, 15, 1, HUMAN_TOTAL);
         }
       } else if (scrollY <= testimonialsTop) {
-        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 10, 1, HUMAN_TOTAL);
-        if (scrollY > techTop * 0.6) {
-          bufferSequenceRange(getLapImg, 0, 10, 2, LAP_TOTAL);
+        bufferSequenceRange(getHumanImg, Math.round(targetHumanFrame), 16, 1, HUMAN_TOTAL);
+        if (scrollY > techTop * 0.5) {
+          bufferSequenceRange(getLapImg, 0, 15, 1, LAP_TOTAL);
         }
       } else {
-        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 10, 1, LAP_TOTAL);
+        bufferSequenceRange(getLapImg, Math.round(targetLapFrame), 16, 1, LAP_TOTAL);
       }
     }
 
@@ -3333,16 +3318,17 @@
     }
     window.addEventListener('resize', () => {
       measureSections();
-      resizeCanvases();
+      resizeCanvases(false);
       onScrollUpdate();
     }, { passive: true });
     window.addEventListener('load', () => {
       measureSections();
+      resizeCanvases(true);
       onScrollUpdate();
     });
 
     measureSections();
-    resizeCanvases();
+    resizeCanvases(true);
     startPreloading();
     onScrollUpdate();
     updateSpotlights(true);
